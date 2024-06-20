@@ -1,0 +1,9 @@
+[tool.sqlfluff.core]
+templater = 'placeholder'
+exclude_rules = 'AM04,ST06'
+
+[tool.sqlfluff.templater.placeholder]
+param_regex = ':\w+'
+
+[tool.sqlfluff.rules.aliasing.expression]
+allow_scalar = true

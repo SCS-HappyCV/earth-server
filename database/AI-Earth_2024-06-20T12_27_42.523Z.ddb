@@ -1,7 +1,7 @@
 {
   "author": "Bit0r",
   "title": "AI-Earth",
-  "date": "2024-06-18T12:40:25.328Z",
+  "date": "2024-06-20T16:19:05.563Z",
   "tables": [
     {
       "name": "conversations",
@@ -63,7 +63,7 @@
         {
           "name": "is_deleted",
           "type": "BOOLEAN",
-          "default": "",
+          "default": "false",
           "check": "",
           "primary": false,
           "unique": false,
@@ -100,7 +100,7 @@
         {
           "name": "name",
           "type": "VARCHAR",
-          "comment": "",
+          "comment": "minio对象名",
           "unique": false,
           "increment": false,
           "notNull": false,
@@ -181,7 +181,7 @@
           "unique": false,
           "notNull": false,
           "increment": false,
-          "comment": "",
+          "comment": "minio对象的目录路径",
           "id": 7,
           "size": 255
         },
@@ -202,7 +202,7 @@
         {
           "name": "is_deleted",
           "type": "BOOLEAN",
-          "default": "",
+          "default": "false",
           "check": "",
           "primary": false,
           "unique": false,
@@ -259,7 +259,7 @@
         {
           "name": "created_time",
           "type": "DATETIME",
-          "default": "CURRENT_TIMESTAMP",
+          "default": "NOW()",
           "check": "",
           "primary": false,
           "unique": false,
@@ -273,7 +273,7 @@
         {
           "name": "updated_time",
           "type": "DATETIME",
-          "default": "",
+          "default": "NOW() ON UPDATE NOW()",
           "check": "",
           "primary": false,
           "unique": false,
@@ -287,7 +287,7 @@
         {
           "name": "is_deleted",
           "type": "BOOLEAN",
-          "default": "",
+          "default": "false",
           "check": "",
           "primary": false,
           "unique": false,
@@ -515,6 +515,20 @@
           "increment": false,
           "comment": "",
           "id": 6
+        },
+        {
+          "name": "is_deleted",
+          "type": "BOOLEAN",
+          "default": "false",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "id": 7,
+          "size": "",
+          "values": []
         }
       ],
       "comment": "",
@@ -575,6 +589,20 @@
           "increment": false,
           "comment": "",
           "id": 3
+        },
+        {
+          "name": "is_deleted",
+          "type": "BOOLEAN",
+          "default": "false",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "id": 4,
+          "size": "",
+          "values": []
         }
       ],
       "comment": "",
@@ -663,6 +691,20 @@
           "id": 5,
           "size": "",
           "values": []
+        },
+        {
+          "name": "is_deleted",
+          "type": "BOOLEAN",
+          "default": "false",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "id": 6,
+          "size": "",
+          "values": []
         }
       ],
       "comment": "",
@@ -737,6 +779,20 @@
           "increment": false,
           "comment": "",
           "id": 4
+        },
+        {
+          "name": "is_deleted",
+          "type": "BOOLEAN",
+          "default": "false",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "id": 5,
+          "size": "",
+          "values": []
         }
       ],
       "comment": "",
