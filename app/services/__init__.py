@@ -1,5 +1,5 @@
 from .change_detections_2d_service import ChangeDetections2DService
-from .detections_2d_service import Detections2DService
-from .projects_service import ProjectsService
+from .detections_2d_service import Detection2DService
+from .projects_service import ProjectService
 
-__all__ = ("ChangeDetections2DService", "Detections2DService", "ProjectsService")
+__all__ = ("ChangeDetections2DService", "Detection2DService", "ProjectService")

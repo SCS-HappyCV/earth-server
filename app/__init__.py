@@ -10,7 +10,7 @@ from litestar.stores.redis import RedisStore
 import pugsql
 
 from .config import CRSF_SECRET, DB_URI, QUERIES_PATH
-from .routes import ProjectController
+from .routes import Detection2DController, ProjectController
 
 cors_config = CORSConfig()
 csrf_config = CSRFConfig(CRSF_SECRET)
@@ -34,7 +34,7 @@ def close_db_connection(app: Litestar):
     queries.disconnect()
 
 
-route_handlers = [ProjectController]
+route_handlers = (ProjectController, Detection2DController)
 
 app = Litestar(
     route_handlers=route_handlers,

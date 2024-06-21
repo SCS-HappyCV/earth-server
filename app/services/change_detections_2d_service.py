@@ -1,12 +1,12 @@
 from pugsql.compiler import Module
 
-from .projects_service import ProjectsService
+from .projects_service import ProjectService
 
 
 class ChangeDetections2DService:
     def __init__(self, queries: Module):
         self.queries = queries
-        self.project_service = ProjectsService(queries)
+        self.project_service = ProjectService(queries)
 
     def create(self, project_id=None, **change_detection):
         if project_id:
