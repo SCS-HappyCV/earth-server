@@ -3,7 +3,7 @@ from pathlib import Path
 import traceback
 from typing import Optional
 
-from box import Box
+from box import Box, BoxList
 import laspy
 from loguru import logger
 from minio import Minio
@@ -45,15 +45,29 @@ class ObjectService:
             name = Path(object_name).name
 
             # 获取图像元数据
+            mode_to_bpp = {
+                "1": 1,
+                "L": 8,
+                "P": 8,
+                "RGB": 24,
+                "RGBA": 32,
+                "CMYK": 32,
+                "YCbCr": 24,
+                "I": 32,
+                "F": 32,
+            }
             with Image.open(file_path) as img:
                 width, height = img.size
                 channel_count = len(img.getbands())
+                bit_depth = mode_to_bpp.get(img.mode, "Unknown")
 
             metadata = {
                 "width": width,
                 "height": height,
                 "channel_count": channel_count,
                 "origin_name": origin_name,
+                "bit_depth": bit_depth,
+                "type": "image",
             }
 
             # 上传文件到Minio
@@ -66,15 +80,12 @@ class ObjectService:
             )
 
             # 保存对象元数据到数据库
-            object_id = self._save_object_metadata(name, folders, origin_name)
+            object_id = self._save_object_metadata(
+                name, folders, origin_name, type="image"
+            )
 
             # 保存图像元数据到数据库
-            image_id = self.queries.insert_image(
-                object_id=object_id,
-                channel_count=channel_count,
-                height=height,
-                width=width,
-            )
+            image_id = self.queries.insert_image(object_id=object_id, **metadata)
 
             logger.info(f"成功保存图像: {name}, ID: {image_id}")
             return image_id
@@ -110,7 +121,11 @@ class ObjectService:
             # 读取点云文件
             las = laspy.read(file_path)
             point_count = las.header.point_count
-            metadata = {"point_count": point_count, "origin_name": origin_name}
+            metadata = {
+                "point_count": point_count,
+                "origin_name": origin_name,
+                "type": "pointcloud",
+            }
 
             # 上传文件到Minio
             self.minio_client.fput_object(
@@ -122,11 +137,13 @@ class ObjectService:
             )
 
             # 保存对象元数据到数据库
-            object_id = self._save_object_metadata(name, folders, origin_name)
+            object_id = self._save_object_metadata(
+                name, folders, origin_name, type="pointcloud"
+            )
 
             # 保存点云元数据到数据库
             pointcloud_id = self.queries.insert_pointcloud(
-                object_id=object_id, point_count=point_count
+                object_id=object_id, **metadata
             )
 
             logger.info(f"成功保存点云: {name}, ID: {pointcloud_id}")
@@ -158,6 +175,44 @@ class ObjectService:
             result = Box({**object_data, "file_path": temp_file_path})
             logger.info(f"成功获取对象: {result.name}, ID: {id}")
             return result
+        except Exception as e:
+            logger.error(f"获取对象时发生错误: {e}")
+            logger.error(traceback.format_exc())
+            return None
+
+    def get_all(self, type: str) -> BoxList | None:
+        """
+        获取所有对象元数据
+
+        :param type: 对象类型
+        :return: 包含对象元数据的BoxList对象，如果获取失败则返回None
+        """
+        try:
+            match type:
+                case "image":
+                    objects_data = self.queries.get_images()
+                case "pointcloud":
+                    objects_data = self.queries.get_pointclouds()
+                case _:
+                    objects_data = self.queries.get_objects()
+
+            if not objects_data:
+                logger.warning(f"未找到类型为{type}的对象")
+                return None
+
+            objects_data = BoxList(objects_data)
+
+            # 获取Minio对象的分享链接
+            for object_data in objects_data:
+                object_name = get_object_name(object_data.name, object_data.folders)
+                share_link = self.minio_client.presigned_get_object(
+                    self.bucket_name, object_name
+                )
+                object_data.share_link = share_link
+
+            logger.info(f"成功获取所有类型为{type}的对象")
+
+            return objects_data
         except Exception as e:
             logger.error(f"获取对象时发生错误: {e}")
             logger.error(traceback.format_exc())
@@ -290,7 +345,9 @@ class ObjectService:
             logger.error(traceback.format_exc())
             return False
 
-    def _save_object_metadata(self, name: str, folders: str, origin_name: str) -> int:
+    def _save_object_metadata(
+        self, name: str, folders: str, origin_name: str, type: str
+    ) -> int:
         """
         保存对象元数据到数据库
 
@@ -314,6 +371,7 @@ class ObjectService:
             content_type=object_stat.content_type,
             folders=folders,
             origin_name=origin_name,
+            type=type,
         )
 
         return object_id

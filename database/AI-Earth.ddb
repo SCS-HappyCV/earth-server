@@ -1,7 +1,7 @@
 {
   "author": "Unnamed",
   "title": "AI-Earth",
-  "date": "2024-07-04T14:23:19.043Z",
+  "date": "2024-07-04T17:49:43.409Z",
   "tables": [
     {
       "name": "conversations",
@@ -98,6 +98,23 @@
           "id": 0
         },
         {
+          "name": "folders",
+          "type": "VARCHAR",
+          "comment": "minio桶中保存的对象的目录路径",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "size": 255,
+          "check": "",
+          "id": 1,
+          "values": [
+            "image",
+            "pointcloud"
+          ]
+        },
+        {
           "name": "name",
           "type": "VARCHAR",
           "comment": "minio对象名",
@@ -108,24 +125,15 @@
           "default": "",
           "size": 255,
           "check": "",
-          "id": 1
+          "id": 2,
+          "values": [
+            "image",
+            "pointcloud"
+          ]
         },
         {
-          "name": "etag",
-          "type": "VARCHAR",
-          "comment": "",
-          "unique": false,
-          "increment": false,
-          "notNull": false,
-          "primary": false,
-          "default": "",
-          "size": 255,
-          "check": "",
-          "id": 2
-        },
-        {
-          "name": "modified_time",
-          "type": "DATETIME",
+          "name": "type",
+          "type": "ENUM",
           "comment": "",
           "unique": false,
           "increment": false,
@@ -133,7 +141,12 @@
           "primary": false,
           "default": "",
           "check": "",
-          "id": 3
+          "id": 3,
+          "values": [
+            "image",
+            "pointcloud"
+          ],
+          "size": 255
         },
         {
           "name": "size",
@@ -173,7 +186,7 @@
           "size": 255
         },
         {
-          "name": "folders",
+          "name": "etag",
           "type": "VARCHAR",
           "default": "",
           "check": "",
@@ -181,9 +194,13 @@
           "unique": false,
           "notNull": false,
           "increment": false,
-          "comment": "minio桶中保存的对象的目录路径",
+          "comment": "",
           "id": 7,
-          "size": 255
+          "size": 255,
+          "values": [
+            "image",
+            "pointcloud"
+          ]
         },
         {
           "name": "tags",
@@ -225,6 +242,22 @@
           "comment": "原始上传的名称",
           "id": 10,
           "size": 255
+        },
+        {
+          "name": "modified_time",
+          "type": "DATETIME",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "id": 11,
+          "values": [
+            "image",
+            "pointcloud"
+          ]
         }
       ],
       "indices": [],
@@ -414,6 +447,18 @@
           "increment": false,
           "comment": "图片的宽",
           "id": 4
+        },
+        {
+          "name": "bit_depth",
+          "type": "INT",
+          "default": "24",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "位深，默认RGB为24位",
+          "id": 5
         }
       ],
       "comment": "",

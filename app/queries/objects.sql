@@ -8,17 +8,17 @@ VALUES (:object_id, :point_count);
 
 -- :name get_image :one
 SELECT
-    i.id AS image_id,
-    i.object_id,
-    i.channel_count,
-    i.height,
-    i.width,
+    i.*,
     o.name,
     o.etag,
     o.modified_time,
     o.size,
     o.content_type,
-    o.folders
+    o.folders,
+    o.tags,
+    o.origin_name,
+    o.versions,
+    o.type
 FROM
     images AS i,
     objects AS o
@@ -29,15 +29,17 @@ WHERE
 
 -- :name get_pointcloud :one
 SELECT
-    p.id AS pointcloud_id,
-    p.object_id,
-    p.point_count,
+    p.*,
     o.name,
     o.etag,
     o.modified_time,
     o.size,
     o.content_type,
-    o.folders
+    o.folders,
+    o.tags,
+    o.origin_name,
+    o.versions,
+    o.type
 FROM
     pointclouds AS p,
     objects AS o
@@ -71,7 +73,8 @@ INSERT INTO objects (
     size,
     content_type,
     folders,
-    origin_name
+    origin_name,
+    type
 ) VALUES (
     :name,
     :etag,
@@ -79,7 +82,8 @@ INSERT INTO objects (
     :size,
     :content_type,
     :folders,
-    :origin_name
+    :origin_name,
+    :type
 );
 
 -- :name delete_image :affected
@@ -129,3 +133,54 @@ FROM objects
 WHERE
     id = :id
     AND is_deleted = FALSE;
+
+-- :name get_pointclouds :many
+SELECT
+    p.*,
+    o.type,
+    o.name,
+    o.etag,
+    o.modified_time,
+    o.size,
+    o.versions,
+    o.content_type,
+    o.folders,
+    o.tags,
+    o.origin_name
+FROM pointclouds AS p, objects AS o
+WHERE
+    p.object_id = o.id
+    AND o.is_deleted = FALSE;
+
+-- :name get_images :many
+SELECT
+    i.*,
+    o.name,
+    o.type,
+    o.etag,
+    o.modified_time,
+    o.size,
+    o.versions,
+    o.content_type,
+    o.folders,
+    o.tags,
+    o.origin_name
+FROM images AS i, objects AS o
+WHERE
+    i.object_id = o.id
+    AND o.is_deleted = FALSE;
+
+-- :name get_objects :many
+SELECT
+    id,
+    name,
+    etag,
+    modified_time,
+    size,
+    versions,
+    content_type,
+    folders,
+    tags,
+    origin_name
+FROM objects
+WHERE is_deleted = FALSE;

@@ -38,13 +38,21 @@ class ObjectController(Controller):
         id: int | None = None,
         type: str | None = None,
     ) -> ResponseWrapper:
-        match type:
-            case "image":
-                object_info = object_service.get_image(id)
-            case "pointcloud":
-                object_info = object_service.get_pointcloud(id)
-            case None:
-                object_info = object_service.get(id)
+        if not id:
+            if not type:
+                return Response(
+                    ResponseWrapper(code=3, message="Invalid request"),
+                    status_code=HTTP_400_BAD_REQUEST,
+                )
+            object_info = object_service.get_all(type)
+        else:
+            match type:
+                case "image":
+                    object_info = object_service.get_image(id)
+                case "pointcloud":
+                    object_info = object_service.get_pointcloud(id)
+                case None:
+                    object_info = object_service.get(id)
 
         if not object_info:
             return Response(
