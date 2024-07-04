@@ -17,23 +17,28 @@ CREATE TABLE `objects` (
 	`size` INT,
 	`versions` INT DEFAULT 1,
 	-- 文件的mime类型
-	`content-type` VARBINARY(255) COMMENT '文件的mime类型',
-	-- minio对象的目录路径
-	`folders` VARCHAR(255) COMMENT 'minio对象的目录路径',
+	`content_type` VARBINARY(255) COMMENT '文件的mime类型',
+	-- minio桶中保存的对象的目录路径
+	`folders` VARCHAR(255) COMMENT 'minio桶中保存的对象的目录路径',
 	-- 对象tags, https://min.io/docs/minio/linux/reference/minio-mc/mc-tag.html
 	`tags` JSON COMMENT '对象tags, https://min.io/docs/minio/linux/reference/minio-mc/mc-tag.html',
 	`is_deleted` BOOLEAN DEFAULT false,
+	-- 原始上传的名称
+	`origin_name` VARCHAR(255) COMMENT '原始上传的名称',
 	PRIMARY KEY(`id`)
 );
 
 /* 项目 */
 CREATE TABLE `projects` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
-	-- 遥感影像解译,地物分类提取,水环境污染监测,流域变化检测
-	`type` ENUM("2d_change_detection", "2d_detection", "2d_segmentation", "3d_segmentation") COMMENT '遥感影像解译,地物分类提取,水环境污染监测,流域变化检测',
+	`name` VARCHAR(255),
 	`created_time` DATETIME DEFAULT NOW(),
 	`updated_time` DATETIME DEFAULT NOW() ON UPDATE NOW(),
 	`is_deleted` BOOLEAN DEFAULT false,
+	-- 遥感影像解译,地物分类提取,水环境污染监测,流域变化检测
+	`type` ENUM("2d_change_detection", "2d_detection", "2d_segmentation", "3d_segmentation") COMMENT '遥感影像解译,地物分类提取,水环境污染监测,流域变化检测',
+	-- 封面缩略图的id
+	`cover_image_id` INT COMMENT '封面缩略图的id',
 	PRIMARY KEY(`id`)
 ) COMMENT='项目';
 
@@ -65,7 +70,6 @@ CREATE TABLE `2d_change_detections` (
 	`mask_image_id` INT,
 	`result` JSON,
 	`plot_image_id` INT,
-	`is_deleted` BOOLEAN DEFAULT false,
 	PRIMARY KEY(`id`)
 );
 
@@ -74,7 +78,6 @@ CREATE TABLE `3d_segmentations` (
 	`pointcloud_id` INT,
 	`result_pointcloud_id` INT,
 	`project_id` INT,
-	`is_deleted` BOOLEAN DEFAULT false,
 	PRIMARY KEY(`id`)
 );
 
@@ -85,7 +88,6 @@ CREATE TABLE `2d_segmentations` (
 	`project_id` INT,
 	`plot_image_id` INT,
 	`result` JSON,
-	`is_deleted` BOOLEAN DEFAULT false,
 	PRIMARY KEY(`id`)
 );
 
@@ -95,7 +97,6 @@ CREATE TABLE `2d_detections` (
 	`result` JSON,
 	`project_id` INT,
 	`plot_image_id` INT,
-	`is_deleted` BOOLEAN DEFAULT false,
 	PRIMARY KEY(`id`)
 );
 
@@ -155,4 +156,7 @@ CREATE TABLE `2d_detections` (
 -- ON UPDATE NO ACTION ON DELETE NO ACTION;
 -- ALTER TABLE `2d_change_detections`
 -- ADD FOREIGN KEY(`plot_image_id`) REFERENCES `images`(`id`)
+-- ON UPDATE NO ACTION ON DELETE NO ACTION;
+-- ALTER TABLE `projects`
+-- ADD FOREIGN KEY(`cover_image_id`) REFERENCES `images`(`id`)
 -- ON UPDATE NO ACTION ON DELETE NO ACTION;

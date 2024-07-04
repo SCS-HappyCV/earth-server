@@ -1,4 +1,5 @@
-from .detection_2d_route import Detection2DController
+from .object_route import ObjectController
 from .project_route import ProjectController
+from .project_task_route import ProjectTaskController
 
-__all__ = ("ProjectController", "Detection2DController")
+__all__ = ("ProjectController", "ProjectTaskController", "ObjectController")

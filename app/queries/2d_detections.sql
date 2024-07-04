@@ -1,4 +1,4 @@
--- :name get_2d_detections_by_project_id :many
+-- :name get_2d_detection_by_project_id :one
 SELECT *
 FROM 2d_detections
 WHERE project_id = :project_id;

@@ -7,10 +7,18 @@ from litestar.config.cors import CORSConfig
 from litestar.config.csrf import CSRFConfig
 from litestar.middleware.session.server_side import ServerSideSessionConfig
 from litestar.stores.redis import RedisStore
+from minio import Minio
 import pugsql
 
-from .config import CRSF_SECRET, DB_URI, QUERIES_PATH
-from .routes import Detection2DController, ProjectController
+from .config import (
+    CRSF_SECRET,
+    DB_URI,
+    MINIO_ACCESS_KEY,
+    MINIO_ENDPOINT,
+    MINIO_SECRET_KEY,
+    QUERIES_PATH,
+)
+from .routes import ObjectController, ProjectController, ProjectTaskController
 
 cors_config = CORSConfig()
 csrf_config = CSRFConfig(CRSF_SECRET)
@@ -26,7 +34,12 @@ def get_db_connection(app: Litestar):
     queries = pugsql.module(queries_path)
     queries.connect(DB_URI)
 
+    minio_clent = Minio(
+        MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, secure=False
+    )
+
     app.state.queries = queries
+    app.state.minio_client = minio_clent
 
 
 def close_db_connection(app: Litestar):
@@ -34,7 +47,7 @@ def close_db_connection(app: Litestar):
     queries.disconnect()
 
 
-route_handlers = (ProjectController, Detection2DController)
+route_handlers = [ObjectController, ProjectController, ProjectTaskController]
 
 app = Litestar(
     route_handlers=route_handlers,

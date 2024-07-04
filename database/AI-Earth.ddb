@@ -1,7 +1,7 @@
 {
-  "author": "Bit0r",
+  "author": "Unnamed",
   "title": "AI-Earth",
-  "date": "2024-06-20T16:19:05.563Z",
+  "date": "2024-07-04T11:42:22.105Z",
   "tables": [
     {
       "name": "conversations",
@@ -160,7 +160,7 @@
           "id": 5
         },
         {
-          "name": "content-type",
+          "name": "content_type",
           "type": "VARBINARY",
           "default": "",
           "check": "",
@@ -181,7 +181,7 @@
           "unique": false,
           "notNull": false,
           "increment": false,
-          "comment": "minio对象的目录路径",
+          "comment": "minio桶中保存的对象的目录路径",
           "id": 7,
           "size": 255
         },
@@ -212,6 +212,19 @@
           "id": 9,
           "size": "",
           "values": []
+        },
+        {
+          "name": "origin_name",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "原始上传的名称",
+          "id": 10,
+          "size": 255
         }
       ],
       "indices": [],
@@ -238,17 +251,17 @@
           "id": 0
         },
         {
-          "name": "type",
-          "type": "ENUM",
+          "name": "name",
+          "type": "VARCHAR",
           "default": "",
           "check": "",
           "primary": false,
           "unique": false,
           "notNull": false,
           "increment": false,
-          "comment": "遥感影像解译,地物分类提取,水环境污染监测,流域变化检测",
+          "comment": "",
           "id": 1,
-          "size": "",
+          "size": 255,
           "values": [
             "2d_change_detection",
             "2d_detection",
@@ -297,6 +310,38 @@
           "id": 4,
           "size": "",
           "values": []
+        },
+        {
+          "name": "type",
+          "type": "ENUM",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "遥感影像解译,地物分类提取,水环境污染监测,流域变化检测",
+          "id": 5,
+          "size": "",
+          "values": [
+            "2d_change_detection",
+            "2d_detection",
+            "2d_segmentation",
+            "3d_segmentation"
+          ]
+        },
+        {
+          "name": "cover_image_id",
+          "type": "INT",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "封面缩略图的id",
+          "id": 6,
+          "size": 255
         }
       ],
       "comment": "项目",
@@ -427,8 +472,8 @@
     {
       "id": 5,
       "name": "2d_change_detections",
-      "x": 1172.6441913014762,
-      "y": 60.194044427474466,
+      "x": 1303.0730344695223,
+      "y": 144.00067297517393,
       "fields": [
         {
           "name": "id",
@@ -515,20 +560,6 @@
           "increment": false,
           "comment": "",
           "id": 6
-        },
-        {
-          "name": "is_deleted",
-          "type": "BOOLEAN",
-          "default": "false",
-          "check": "",
-          "primary": false,
-          "unique": false,
-          "notNull": false,
-          "increment": false,
-          "comment": "",
-          "id": 7,
-          "size": "",
-          "values": []
         }
       ],
       "comment": "",
@@ -539,8 +570,8 @@
     {
       "id": 6,
       "name": "3d_segmentations",
-      "x": 600.66207572544,
-      "y": 680.8604767323295,
+      "x": 566.4552885631138,
+      "y": 680.8604767323293,
       "fields": [
         {
           "name": "id",
@@ -589,20 +620,6 @@
           "increment": false,
           "comment": "",
           "id": 3
-        },
-        {
-          "name": "is_deleted",
-          "type": "BOOLEAN",
-          "default": "false",
-          "check": "",
-          "primary": false,
-          "unique": false,
-          "notNull": false,
-          "increment": false,
-          "comment": "",
-          "id": 4,
-          "size": "",
-          "values": []
         }
       ],
       "comment": "",
@@ -613,8 +630,8 @@
     {
       "id": 7,
       "name": "2d_segmentations",
-      "x": 1182.3194951034893,
-      "y": 429.32065519454613,
+      "x": 997.6028444269275,
+      "y": 453.26540620817457,
       "fields": [
         {
           "name": "id",
@@ -691,20 +708,6 @@
           "id": 5,
           "size": "",
           "values": []
-        },
-        {
-          "name": "is_deleted",
-          "type": "BOOLEAN",
-          "default": "false",
-          "check": "",
-          "primary": false,
-          "unique": false,
-          "notNull": false,
-          "increment": false,
-          "comment": "",
-          "id": 6,
-          "size": "",
-          "values": []
         }
       ],
       "comment": "",
@@ -779,20 +782,6 @@
           "increment": false,
           "comment": "",
           "id": 4
-        },
-        {
-          "name": "is_deleted",
-          "type": "BOOLEAN",
-          "default": "false",
-          "check": "",
-          "primary": false,
-          "unique": false,
-          "notNull": false,
-          "increment": false,
-          "comment": "",
-          "id": 5,
-          "size": "",
-          "values": []
         }
       ],
       "comment": "",
@@ -840,7 +829,7 @@
       "startFieldId": 3,
       "endTableId": 2,
       "endFieldId": 0,
-      "cardinality": "多对一",
+      "cardinality": "一对一",
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "conversations_project_id_fk",
@@ -851,7 +840,7 @@
       "startFieldId": 1,
       "endTableId": 2,
       "endFieldId": 0,
-      "cardinality": "多对一",
+      "cardinality": "一对一",
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_detection_project_id_fk",
@@ -950,7 +939,7 @@
       "startFieldId": 3,
       "endTableId": 2,
       "endFieldId": 0,
-      "cardinality": "多对一",
+      "cardinality": "一对一",
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_detections_project_id_fk",
@@ -961,7 +950,7 @@
       "startFieldId": 3,
       "endTableId": 2,
       "endFieldId": 0,
-      "cardinality": "多对一",
+      "cardinality": "一对一",
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_segmentations_project_id_fk",
@@ -972,7 +961,7 @@
       "startFieldId": 3,
       "endTableId": 2,
       "endFieldId": 0,
-      "cardinality": "多对一",
+      "cardinality": "一对一",
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "3d_segmentations_project_id_fk",
@@ -1010,6 +999,17 @@
       "deleteConstraint": "No action",
       "name": "2d_change_detections_plot_image_id_fk",
       "id": 18
+    },
+    {
+      "startTableId": 2,
+      "startFieldId": 6,
+      "endTableId": 3,
+      "endFieldId": 0,
+      "cardinality": "多对一",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "name": "projects_cover_image_id_fk",
+      "id": 19
     }
   ],
   "notes": [],

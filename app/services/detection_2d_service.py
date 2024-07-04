@@ -1,9 +1,9 @@
 from box import Box, BoxList
 from pugsql.compiler import Module
 
-from app.utils.table_fns import delete_fields
+from app.utils.table_funcs import delete_fields
 
-from .projects_service import ProjectService
+from .project_service import ProjectService
 
 
 class Detection2DService:
@@ -38,11 +38,7 @@ class Detection2DService:
         if id:
             return self.queries.get_2d_detection(id=id)
         elif project_id:
-            detections_2d = self.queries.get_2d_detections_by_project_id(
-                project_id=project_id
-            )
-            detections_2d = delete_fields(["is_deleted"], rows=detections_2d)
-            return detections_2d
+            return self.queries.get_2d_detection_by_project_id(project_id=project_id)
         else:
             msg = "Either detection_id or project_id must be provided"
             raise ValueError(msg)

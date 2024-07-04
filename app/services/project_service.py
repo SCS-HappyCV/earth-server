@@ -2,7 +2,7 @@ from box import Box, BoxList
 from loguru import logger
 from pugsql.compiler import Module
 
-from app.utils.table_fns import delete_fields
+from app.utils.table_funcs import delete_fields
 
 
 class ProjectService:
@@ -14,9 +14,7 @@ class ProjectService:
         return self.queries.create_project(name=name, type=type)
 
     def get(self, id):
-        result = self.queries.get_project(id=id)
-        result = delete_fields(["is_deleted"], row=result)
-        return result
+        return self.queries.get_project(id=id)
 
     def list(self, row_count=10, offset=0):
         results = self.queries.get_projects(row_count=row_count, offset=offset)
