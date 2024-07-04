@@ -1,8 +1,12 @@
 from pathlib import Path
+import shutil
+import socket
 import traceback
 
+from fire import Fire
 from loguru import logger
 from minio import Minio
+from minio.error import S3Error
 
 
 def get_object_name(name: str, folders: str | list[str]) -> str:
@@ -15,17 +19,8 @@ def get_object_name(name: str, folders: str | list[str]) -> str:
         raise TypeError(msg)
 
     object_name = folders / name
+    object_name = str(object_name)
     return object_name
-
-
-from pathlib import Path
-import shutil
-import traceback
-
-from fire import Fire
-from loguru import logger
-from minio import Minio
-from minio.error import S3Error
 
 
 def get_available_object_name(client: Minio, bucket_name: str, object_name: str) -> str:

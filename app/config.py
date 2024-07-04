@@ -14,9 +14,12 @@ DATABASE_PORT = os.getenv("DATABASE_PORT", default="3306")
 
 DB_URI = f"mysql+pymysql://{DATABASE_USER}:{DATABASE_PASSWORD}@{DATABASE_HOST}:{DATABASE_PORT}/{DATABASE_NAME}"
 
-MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", default="localhost:9000")
+PUBLIC_IP = os.getenv("PUBLIC_IP", default="localhost")
+
+MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", default=f"{PUBLIC_IP}:9000")
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", default="minioadmin")
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", default="minioadmin")
 MINIO_BUCKET = os.getenv("MINIO_BUCKET", default="ai-earth")
+
 
 CRSF_SECRET = os.getenv("CSRF_SECRET")

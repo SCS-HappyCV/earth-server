@@ -1,7 +1,7 @@
 {
   "author": "Unnamed",
   "title": "AI-Earth",
-  "date": "2024-07-04T11:42:22.105Z",
+  "date": "2024-07-04T14:23:19.043Z",
   "tables": [
     {
       "name": "conversations",
@@ -161,7 +161,7 @@
         },
         {
           "name": "content_type",
-          "type": "VARBINARY",
+          "type": "VARCHAR",
           "default": "",
           "check": "",
           "primary": false,

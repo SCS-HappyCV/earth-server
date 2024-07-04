@@ -25,7 +25,6 @@ FROM
 WHERE
     i.object_id = o.id
     AND i.id = :id
-    AND i.is_deleted = FALSE
     AND o.is_deleted = FALSE;
 
 -- :name get_pointcloud :one

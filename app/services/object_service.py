@@ -176,18 +176,16 @@ class ObjectService:
                 logger.warning(f"未找到ID为{id}的图像")
                 return None
 
-            object_data = self.queries.get_object(id=image_data.object_id)
-            if not object_data:
-                logger.warning(f"未找到与图像ID {id} 关联的对象")
-                return None
+            image_data = Box(image_data)
+            logger.debug(f"获取到的图像数据: {image_data}")
 
-            object_name = get_object_name(object_data.name, object_data.folders)
+            object_name = get_object_name(image_data.name, image_data.folders)
             # 获取Minio对象的分享链接
             share_link = self.minio_client.presigned_get_object(
                 self.bucket_name, object_name
             )
 
-            result = Box({**image_data, **object_data, "share_link": share_link})
+            result = Box({**image_data, "share_link": share_link})
             logger.info(f"成功获取图像: {result.name}, ID: {id}")
             return result
         except Exception as e:

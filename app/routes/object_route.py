@@ -32,11 +32,11 @@ class ObjectController(Controller):
     }
 
     @get(path="/", sync_to_thread=True)
-    def gets(self, object_service: ObjectService, type: str) -> ResponseWrapper: ...
-
-    @get(path="/{id:int}", sync_to_thread=True)
     def get(
-        self, id: int, object_service: ObjectService, type: str | None = None
+        self,
+        object_service: ObjectService,
+        id: int | None = None,
+        type: str | None = None,
     ) -> ResponseWrapper:
         match type:
             case "image":

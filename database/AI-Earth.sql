@@ -17,7 +17,7 @@ CREATE TABLE `objects` (
 	`size` INT,
 	`versions` INT DEFAULT 1,
 	-- 文件的mime类型
-	`content_type` VARBINARY(255) COMMENT '文件的mime类型',
+	`content_type` VARCHAR(255) COMMENT '文件的mime类型',
 	-- minio桶中保存的对象的目录路径
 	`folders` VARCHAR(255) COMMENT 'minio桶中保存的对象的目录路径',
 	-- 对象tags, https://min.io/docs/minio/linux/reference/minio-mc/mc-tag.html
