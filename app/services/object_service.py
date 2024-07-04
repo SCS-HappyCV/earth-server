@@ -206,19 +206,19 @@ class ObjectService:
                 logger.warning(f"未找到ID为{id}的点云")
                 return None
 
-            object_data = self.queries.get_object(id=pointcloud_data.object_id)
-            if not object_data:
-                logger.warning(f"未找到与点云ID {id} 关联的对象")
-                return None
+            pointcloud_data = Box(pointcloud_data)
+            logger.debug(f"获取到的点云数据: {pointcloud_data}")
+
+            object_name = get_object_name(pointcloud_data.name, pointcloud_data.folders)
 
             # 获取Minio对象的分享链接
             share_link = self.minio_client.presigned_get_object(
-                self.bucket_name,
-                object_data.folders,
-                expires=7 * 24 * 3600,  # 链接有效期7天
+                self.bucket_name, object_name
             )
 
-            result = Box({**pointcloud_data, **object_data, "share_link": share_link})
+            logger.debug(f"分享链接: {share_link}")
+
+            result = Box({**pointcloud_data, "share_link": share_link})
             logger.info(f"成功获取点云: {result.name}, ID: {id}")
             return result
         except Exception as e:
