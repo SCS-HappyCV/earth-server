@@ -11,7 +11,7 @@ class Segmentation3DService:
         self.queries = queries
         self.project_service = ProjectService(queries)
 
-    def create(self, image_id, project_id=None):
+    def create(self, pointcloud_id, project_id=None, project_name=None, **kwargs):
         with self.queries.transaction() as tx:
             if project_id:
                 project = self.project_service.get(project_id)
@@ -21,10 +21,12 @@ class Segmentation3DService:
                     msg = f"Project with id {project_id} does not exist"
                     raise ValueError(msg)
             else:
-                project_id = self.project_service.create(project_type="3d_segmentation")
+                project_id = self.project_service.create(
+                    type="3d_segmentation", name=project_name
+                )
 
             last_id = self.queries.create_3d_segmentation(
-                project_id=project_id, image_id=image_id
+                project_id=project_id, pointcloud_id=pointcloud_id
             )
             if not last_id:
                 tx.rollback()
@@ -32,7 +34,7 @@ class Segmentation3DService:
                 msg = "Failed to create 3d segmentation"
                 raise ValueError(msg)
 
-            return last_id
+        return last_id, project_id
 
     def get(self, *, id=None, project_id=None):
         if id:

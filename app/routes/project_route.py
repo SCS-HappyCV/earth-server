@@ -34,15 +34,17 @@ class ProjectController(Controller):
     def get(self, id: int, project_service: ProjectService) -> ResponseWrapper:
         logger.debug(f"Getting project with id {id}")
 
-        project = project_service.get(id)
-        logger.debug(f"Project: {project}")
+        project_info = project_service.get(id)
+        logger.debug(f"Project: {project_info}")
 
-        if not project:
+        project_info = Box(project_info)
+
+        if not project_info:
             return Response(
                 ResponseWrapper(code=2, message=f"Project with id {id} not found"),
                 status_code=HTTP_404_NOT_FOUND,
             )
-        return ResponseWrapper(project)
+        return ResponseWrapper(project_info)
 
     @post(path="/", sync_to_thread=True)
     def create(

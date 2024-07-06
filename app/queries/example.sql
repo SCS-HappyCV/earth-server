@@ -20,3 +20,10 @@ insert into foo (id, val) values (:id, :val);
 -- :name find_by_usernames :many
 select * from users
 where username in :usernames;
+
+-- :name delete_by_username :affected
+update orders
+set oreders.is_deleted = true
+where
+	orders.userid = users.userid
+	and users.username = :username;

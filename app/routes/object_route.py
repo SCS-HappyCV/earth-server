@@ -36,25 +36,30 @@ class ObjectController(Controller):
         self,
         object_service: ObjectService,
         id: int | None = None,
+        ids: list[int] | None = None,
         type: str | None = None,
     ) -> ResponseWrapper:
-        if not id:
-            if not type:
-                return Response(
-                    ResponseWrapper(code=3, message="Invalid request"),
-                    status_code=HTTP_400_BAD_REQUEST,
-                )
-            object_info = object_service.get_all(type)
-        else:
+        if ids and type == "image":
+            logger.info("Getting images")
+            object_info = object_service.get_images(ids)
+        elif id:
             match type:
                 case "image":
+                    logger.info("Getting image")
                     object_info = object_service.get_image(id)
                 case "pointcloud":
                     object_info = object_service.get_pointcloud(id)
                 case None:
                     object_info = object_service.get(id)
+        elif type:
+            object_info = object_service.get_all(type)
+        else:
+            return Response(
+                ResponseWrapper(code=3, message="Invalid request"),
+                status_code=HTTP_400_BAD_REQUEST,
+            )
 
-        if not object_info:
+        if object_info is None:
             return Response(
                 ResponseWrapper(code=2, message=f"object_info with id {id} not found"),
                 status_code=HTTP_404_NOT_FOUND,
@@ -71,6 +76,7 @@ class ObjectController(Controller):
     ) -> ResponseWrapper | Response:
         logger.info("Creating object")
 
+        result = Box({"image_ids": [], "pointcloud_ids": [], "object_ids": []})
         for file in data:
             mime_type, _ = mimetypes.guess_type(file.filename, strict=False)
             if not mime_type:
@@ -88,13 +94,17 @@ class ObjectController(Controller):
                 f.write(file.file.read())
 
             if mime_type.parent.name == "image":
-                id = object_service.save_image(
+                image_id, object_id = object_service.save_image(
                     file.filename, tmp_file, content_type=str(mime_type)
                 )
+                result.image_ids.append(image_id)
+                result.object_ids.append(object_id)
             elif mime_type.name in ["octet-stream", "vnd.las", "vnd.laz"]:
-                id = object_service.save_pointcloud(
+                pointcloud_id, object_id = object_service.save_pointcloud(
                     file.filename, tmp_file, content_type=str(mime_type)
                 )
+                result.pointcloud_ids.append(pointcloud_id)
+                result.object_ids.append(object_id)
             else:
                 return Response(
                     ResponseWrapper(code=3, message="Invalid file type"),
@@ -103,14 +113,14 @@ class ObjectController(Controller):
 
             tmp_file.unlink()
 
-        if not id:
+        if not result.object_ids:
             return Response(
                 ResponseWrapper(code=1, message="Failed to create object"),
                 status_code=HTTP_404_NOT_FOUND,
             )
 
         return Response(
-            ResponseWrapper(message="Object created successfully", id=id),
+            ResponseWrapper(result, message="Object created successfully"),
             status_code=HTTP_201_CREATED,
         )
 
@@ -152,13 +162,20 @@ class ObjectController(Controller):
 
         return ResponseWrapper(message="Object updated successfully")
 
-    @delete(path="/{id:int}", status_code=HTTP_200_OK, sync_to_thread=True)
+    @delete(path="/", status_code=HTTP_200_OK, sync_to_thread=True)
     def delete(
-        self, id: int, object_service: ObjectService
+        self,
+        object_service: ObjectService,
+        object_id: int | None = None,
+        type: str | None = None,
+        id: int | None = None,
     ) -> ResponseWrapper | Response:
-        if object_service.delete(id):
+        logger.info("Deleting object")
+        logger.info(f"object_id={object_id}, type={type}, id={id}")
+
+        if object_service.delete(object_id):
             return ResponseWrapper()
         return Response(
-            ResponseWrapper(code=2, message=f"Project with id {id} not found"),
+            ResponseWrapper(code=2, message=f"Object with id {object_id} not found"),
             status_code=HTTP_404_NOT_FOUND,
         )

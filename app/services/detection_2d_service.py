@@ -11,7 +11,7 @@ class Detection2DService:
         self.queries = queries
         self.project_service = ProjectService(queries)
 
-    def create(self, image_id, project_id=None):
+    def create(self, image_id, project_id=None, project_name=None, **kwargs):
         with self.queries.transaction() as tx:
             if project_id:
                 project = self.project_service.get(project_id)
@@ -21,7 +21,9 @@ class Detection2DService:
                     msg = f"Project with id {project_id} does not exist"
                     raise ValueError(msg)
             else:
-                project_id = self.project_service.create(project_type="2d_detection")
+                project_id = self.project_service.create(
+                    type="2d_detection", name=project_name, cover_image_id=image_id
+                )
 
             last_id = self.queries.create_2d_detection(
                 project_id=project_id, image_id=image_id
@@ -32,7 +34,7 @@ class Detection2DService:
                 msg = "Failed to create 2d detection"
                 raise ValueError(msg)
 
-            return last_id
+        return last_id, project_id
 
     def get(self, *, id=None, project_id=None):
         if id:

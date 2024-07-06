@@ -7,7 +7,6 @@ from box import Box, BoxList
 import laspy
 from loguru import logger
 from minio import Minio
-import open3d as o3d
 from PIL import Image
 from pugsql.compiler import Module
 
@@ -88,7 +87,7 @@ class ObjectService:
             image_id = self.queries.insert_image(object_id=object_id, **metadata)
 
             logger.info(f"成功保存图像: {name}, ID: {image_id}")
-            return image_id
+            return image_id, object_id
         except Exception as e:
             logger.error(f"保存图像时发生错误: {e}")
             logger.error(traceback.format_exc())
@@ -147,11 +146,44 @@ class ObjectService:
             )
 
             logger.info(f"成功保存点云: {name}, ID: {pointcloud_id}")
-            return pointcloud_id
+            return pointcloud_id, object_id
         except Exception as e:
             logger.error(f"保存点云时发生错误: {e}")
             logger.error(traceback.format_exc())
             return None
+
+    def delete(self, id) -> bool:
+        """
+        删除对象及其相关数据
+
+        :param id: 对象ID
+        :return: 删除是否成功
+        """
+        try:
+            object_data = self.queries.get_object(id=id)
+            if not object_data:
+                logger.warning(f"未找到ID为{id}的对象")
+                return False
+
+            object_data = Box(object_data)
+
+            # 从Minio删除文件
+            object_name = get_object_name(object_data.name, object_data.folders)
+            self.minio_client.remove_object(self.bucket_name, object_name)
+
+            # 从数据库删除记录
+            result = self.queries.delete_object(id=id)
+
+            if result:
+                logger.info(f"成功删除对象: {object_data.name}, ID: {id}")
+                return True
+            else:
+                logger.warning(f"删除对象失败: {object_data.name}, ID: {id}")
+                return False
+        except Exception as e:
+            logger.error(f"删除对象时发生错误: {e}")
+            logger.error(traceback.format_exc())
+            return False
 
     def get(self, id: int) -> Optional[Box]:
         """
@@ -180,7 +212,13 @@ class ObjectService:
             logger.error(traceback.format_exc())
             return None
 
-    def get_all(self, type: str) -> BoxList | None:
+    def gets(
+        self,
+        type: str | None = None,
+        origin_types: tuple[str] = ("user", "system"),
+        offset: int | None = 0,
+        row_count: int | None = 9999,
+    ) -> BoxList | None:
         """
         获取所有对象元数据
 
@@ -190,11 +228,17 @@ class ObjectService:
         try:
             match type:
                 case "image":
-                    objects_data = self.queries.get_images()
+                    objects_data = self.queries.get_images(
+                        offset=offset, row_count=row_count, origin_types=origin_types
+                    )
                 case "pointcloud":
-                    objects_data = self.queries.get_pointclouds()
-                case _:
-                    objects_data = self.queries.get_objects()
+                    objects_data = self.queries.get_pointclouds(
+                        offset=offset, row_count=row_count, origin_types=origin_types
+                    )
+                case None | "all":
+                    objects_data = self.queries.get_objects(
+                        offset=offset, row_count=row_count, origin_types=origin_types
+                    )
 
             if not objects_data:
                 logger.warning(f"未找到类型为{type}的对象")
@@ -209,6 +253,19 @@ class ObjectService:
                     self.bucket_name, object_name
                 )
                 object_data.share_link = share_link
+
+                if object_data.thumbnail_id is not None:
+                    # 获取缩略图的分享链接
+                    thumbnail_data = self.queries.get_object(
+                        id=object_data.thumbnail_id
+                    )
+                    thumbnail_name = get_object_name(
+                        thumbnail_data.name, thumbnail_data.folders
+                    )
+                    thumbnail_link = self.minio_client.presigned_get_object(
+                        self.bucket_name, thumbnail_name
+                    )
+                    object_data.thumbnail_link = thumbnail_link
 
             logger.info(f"成功获取所有类型为{type}的对象")
 
@@ -247,6 +304,36 @@ class ObjectService:
             logger.error(f"获取图像时发生错误: {e}")
             logger.error(traceback.format_exc())
             return None
+
+    def get_images(self, ids: list[int]) -> BoxList | None:
+        """
+        获取多个图像元数据和分享链接
+
+        :param ids: 图像ID列表
+        :return: 包含图像元数据和分享链接的BoxList对象，如果获取失败则返回None
+        """
+        try:
+            images_data = self.queries.get_images_by_ids(ids=ids)
+            if not images_data:
+                logger.warning(f"未找到ID为{ids}的图像")
+                return None
+
+            images_data = BoxList(images_data)
+
+            # 获取Minio对象的分享链接
+            for image_data in images_data:
+                object_name = get_object_name(image_data.name, image_data.folders)
+                share_link = self.minio_client.presigned_get_object(
+                    self.bucket_name, object_name
+                )
+                image_data.share_link = share_link
+
+            logger.info(f"成功获取ID为{ids}的图像")
+            return images_data
+        except Exception as e:
+            logger.error(f"获取图像时发生错误: {e}")
+            logger.error(traceback.format_exc())
+            return
 
     def get_pointcloud(self, id: int) -> Optional[Box]:
         """

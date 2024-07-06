@@ -8,82 +8,82 @@ VALUES (:object_id, :point_count);
 
 -- :name get_image :one
 SELECT
-    i.*,
-    o.name,
-    o.etag,
-    o.modified_time,
-    o.size,
-    o.content_type,
-    o.folders,
-    o.tags,
-    o.origin_name,
-    o.versions,
-    o.type
+	i.*,
+	o.name,
+	o.etag,
+	o.modified_time,
+	o.size,
+	o.content_type,
+	o.folders,
+	o.tags,
+	o.origin_name,
+	o.versions,
+	o.type
 FROM
-    images AS i,
-    objects AS o
+	images AS i,
+	objects AS o
 WHERE
-    i.object_id = o.id
-    AND i.id = :id
-    AND o.is_deleted = FALSE;
+	i.object_id = o.id
+	AND i.id = :id
+	AND o.is_deleted = FALSE;
 
 -- :name get_pointcloud :one
 SELECT
-    p.*,
-    o.name,
-    o.etag,
-    o.modified_time,
-    o.size,
-    o.content_type,
-    o.folders,
-    o.tags,
-    o.origin_name,
-    o.versions,
-    o.type
+	p.*,
+	o.name,
+	o.etag,
+	o.modified_time,
+	o.size,
+	o.content_type,
+	o.folders,
+	o.tags,
+	o.origin_name,
+	o.versions,
+	o.type
 FROM
-    pointclouds AS p,
-    objects AS o
+	pointclouds AS p,
+	objects AS o
 WHERE
-    p.object_id = o.id
-    AND p.id = :id
-    AND o.is_deleted = FALSE;
+	p.object_id = o.id
+	AND p.id = :id
+	AND o.is_deleted = FALSE;
 
 -- :name get_object :one
 SELECT
-    id,
-    name,
-    etag,
-    modified_time,
-    size,
-    versions,
-    content_type,
-    folders,
-    tags
+	id,
+	name,
+	etag,
+	modified_time,
+	size,
+	versions,
+	content_type,
+	folders,
+	tags
 FROM
-    objects
+	objects
 WHERE
-    id = :id
-    AND is_deleted = FALSE;
+	id = :id
+	AND is_deleted = FALSE;
 
 -- :name insert_object :insert
 INSERT INTO objects (
-    name,
-    etag,
-    modified_time,
-    size,
-    content_type,
-    folders,
-    origin_name,
-    type
+	name,
+	etag,
+	modified_time,
+	size,
+	content_type,
+	folders,
+	origin_name,
+	type
 ) VALUES (
-    :name,
-    :etag,
-    :modified_time,
-    :size,
-    :content_type,
-    :folders,
-    :origin_name,
-    :type
+	:name,
+	:etag,
+	:modified_time,
+	:size,
+	:content_type,
+	:folders,
+	:origin_name,
+	:type
 );
 
 -- :name delete_image :affected
@@ -104,83 +104,104 @@ WHERE id = :id;
 -- :name update_object_folder :affected
 UPDATE objects
 SET
-    folders = :folders,
-    updated_time = NOW()
+	folders = :folders,
+	updated_time = NOW()
 WHERE
-    id = :id
-    AND is_deleted = FALSE;
+	id = :id
+	AND is_deleted = FALSE;
 
 -- :name get_objects_by_ids :many
 SELECT
-    id,
-    name,
-    etag,
-    modified_time,
-    size,
-    versions,
-    content_type,
-    folders,
-    tags
+	id,
+	name,
+	etag,
+	modified_time,
+	size,
+	versions,
+	content_type,
+	folders,
+	tags
 FROM
-    objects
+	objects
 WHERE
-    id IN :ids
-    AND is_deleted = FALSE;
+	id IN :ids
+	AND is_deleted = FALSE;
 
 -- :name get_object_name :scalar
 SELECT name
 FROM objects
 WHERE
-    id = :id
-    AND is_deleted = FALSE;
+	id = :id
+	AND is_deleted = FALSE;
 
 -- :name get_pointclouds :many
 SELECT
-    p.*,
-    o.type,
-    o.name,
-    o.etag,
-    o.modified_time,
-    o.size,
-    o.versions,
-    o.content_type,
-    o.folders,
-    o.tags,
-    o.origin_name
+	p.*,
+	o.type,
+	o.name,
+	o.etag,
+	o.modified_time,
+	o.size,
+	o.versions,
+	o.content_type,
+	o.folders,
+	o.tags,
+	o.origin_name,
+	o.origin_type
 FROM pointclouds AS p, objects AS o
 WHERE
-    p.object_id = o.id
-    AND o.is_deleted = FALSE;
+	p.object_id = o.id
+	AND o.is_deleted = FALSE
+	AND o.origin_type IN :origin_types
+LIMIT :offset, :row_count;
 
 -- :name get_images :many
 SELECT
-    i.*,
-    o.name,
-    o.type,
-    o.etag,
-    o.modified_time,
-    o.size,
-    o.versions,
-    o.content_type,
-    o.folders,
-    o.tags,
-    o.origin_name
+	i.*,
+	o.name,
+	o.type,
+	o.etag,
+	o.modified_time,
+	o.size,
+	o.versions,
+	o.content_type,
+	o.folders,
+	o.tags,
+	o.origin_name,
+	o.origin_type
 FROM images AS i, objects AS o
 WHERE
-    i.object_id = o.id
-    AND o.is_deleted = FALSE;
+	i.object_id = o.id
+	AND o.is_deleted = FALSE
+	AND o.origin_type IN :origin_types
+LIMIT :offset, :row_count;
+
+-- :name get_images_by_ids :many
+SELECT
+	i.*,
+	o.name,
+	o.type,
+	o.etag,
+	o.modified_time,
+	o.size,
+	o.versions,
+	o.content_type,
+	o.folders,
+	o.tags,
+	o.origin_name,
+	o.origin_type
+FROM images AS i, objects AS o
+WHERE
+	i.object_id = o.id
+	AND o.is_deleted = FALSE
+	AND i.id IN :ids;
 
 -- :name get_objects :many
 SELECT
-    id,
-    name,
-    etag,
-    modified_time,
-    size,
-    versions,
-    content_type,
-    folders,
-    tags,
-    origin_name
+	*,
+	id AS object_id
 FROM objects
-WHERE is_deleted = FALSE;
+WHERE
+	is_deleted = FALSE
+	AND origin_type IN :origin_types
+LIMIT :offset, :row_count;

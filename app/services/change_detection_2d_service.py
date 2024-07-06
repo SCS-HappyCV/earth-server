@@ -10,16 +10,27 @@ class ChangeDetection2DService:
         self.queries = queries
         self.project_service = ProjectService(queries)
 
-    def create(self, change_detection, *, project_id=None):
+    def create(
+        self, image1_id, image2_id, project_id=None, project_name=None, **kwargs
+    ):
         if project_id:
             project = self.project_service.get(project_id)
             if not project:
                 msg = f"Project with id {project_id} does not exist"
                 raise ValueError(msg)
         else:
-            project_id = self.project_service.create(type="2d_detection")
+            project_id = self.project_service.create(
+                type="2d_detection", name=project_name, cover_image_id=image1_id
+            )
 
-        return self.queries.create_2d_change_detection(**change_detection)
+        last_id = self.queries.create_2d_change_detection(
+            image1_id=image1_id, image2_id=image2_id, project_id=project_id
+        )
+        if not last_id:
+            msg = "Failed to create 2d change detection"
+            raise ValueError(msg)
+
+        return last_id, project_id
 
     def get(self, *, id=None, project_id=None):
         if id:

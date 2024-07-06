@@ -9,9 +9,11 @@ class ProjectService:
     def __init__(self, queries: Module):
         self.queries = queries
 
-    def create(self, type, name=None):
+    def create(self, type, name, cover_image_id=None, **kwargs):
         logger.debug(f"Creating project of type {type}")
-        return self.queries.create_project(name=name, type=type)
+        return self.queries.create_project(
+            name=name, type=type, cover_image_id=cover_image_id
+        )
 
     def get(self, id):
         return self.queries.get_project(id=id)

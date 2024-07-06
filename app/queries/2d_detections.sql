@@ -23,10 +23,20 @@ WHERE
 INSERT INTO 2d_detections (image_id, project_id)
 VALUES (:image_id, :project_id);
 
--- :name delete_2d_detection :affected
+-- :name update_2d_detection :affected
 UPDATE 2d_detections
-SET is_deleted = true
+SET
+    result = :result,
+    plot_image_id = :plot_image_id
 WHERE id = :id;
+
+-- :name delete_2d_detection :affected
+UPDATE 2d_detections AS d,
+    projects AS p
+SET p.is_deleted = true
+WHERE
+    d.id = :id
+    AND d.project_id = p.id;
 
 -- :name delete_2d_detections_by_project_id :affected
 UPDATE 2d_detections

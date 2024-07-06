@@ -8,12 +8,12 @@ LIMIT :offset, :row_count;
 SELECT *
 FROM projects
 WHERE
-    id = :id
-    AND is_deleted = false;
+	id = :id
+	AND is_deleted = false;
 
 -- :name create_project :insert
-INSERT INTO projects (name, type)
-VALUES (:name, :type);
+INSERT INTO projects (name, type, cover_image_id)
+VALUES (:name, :type, :cover_image_id);
 
 -- :name delete_project :affected
 UPDATE projects

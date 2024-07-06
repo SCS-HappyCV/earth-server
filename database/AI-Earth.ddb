@@ -1,7 +1,7 @@
 {
   "author": "Unnamed",
   "title": "AI-Earth",
-  "date": "2024-07-04T17:49:43.409Z",
+  "date": "2024-07-06T13:46:32.168Z",
   "tables": [
     {
       "name": "conversations",
@@ -98,23 +98,6 @@
           "id": 0
         },
         {
-          "name": "folders",
-          "type": "VARCHAR",
-          "comment": "minio桶中保存的对象的目录路径",
-          "unique": false,
-          "increment": false,
-          "notNull": false,
-          "primary": false,
-          "default": "",
-          "size": 255,
-          "check": "",
-          "id": 1,
-          "values": [
-            "image",
-            "pointcloud"
-          ]
-        },
-        {
           "name": "name",
           "type": "VARCHAR",
           "comment": "minio对象名",
@@ -125,15 +108,24 @@
           "default": "",
           "size": 255,
           "check": "",
-          "id": 2,
-          "values": [
-            "image",
-            "pointcloud"
-          ]
+          "id": 1
         },
         {
-          "name": "type",
-          "type": "ENUM",
+          "name": "etag",
+          "type": "VARCHAR",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "size": 255,
+          "check": "",
+          "id": 2
+        },
+        {
+          "name": "modified_time",
+          "type": "DATETIME",
           "comment": "",
           "unique": false,
           "increment": false,
@@ -141,12 +133,7 @@
           "primary": false,
           "default": "",
           "check": "",
-          "id": 3,
-          "values": [
-            "image",
-            "pointcloud"
-          ],
-          "size": 255
+          "id": 3
         },
         {
           "name": "size",
@@ -186,7 +173,7 @@
           "size": 255
         },
         {
-          "name": "etag",
+          "name": "folders",
           "type": "VARCHAR",
           "default": "",
           "check": "",
@@ -194,13 +181,9 @@
           "unique": false,
           "notNull": false,
           "increment": false,
-          "comment": "",
+          "comment": "minio桶中保存的对象的目录路径",
           "id": 7,
-          "size": 255,
-          "values": [
-            "image",
-            "pointcloud"
-          ]
+          "size": 255
         },
         {
           "name": "tags",
@@ -244,8 +227,8 @@
           "size": 255
         },
         {
-          "name": "modified_time",
-          "type": "DATETIME",
+          "name": "type",
+          "type": "ENUM",
           "default": "",
           "check": "",
           "primary": false,
@@ -258,12 +241,40 @@
             "image",
             "pointcloud"
           ]
+        },
+        {
+          "name": "origin_type",
+          "type": "ENUM",
+          "default": "user",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "id": 12,
+          "values": [
+            "user",
+            "system"
+          ]
+        },
+        {
+          "name": "thumbnail_id",
+          "type": "INT",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "id": 13
         }
       ],
       "indices": [],
       "id": 1,
-      "x": -227.37773504696133,
-      "y": 468.4632313013891
+      "x": -304.68934988221474,
+      "y": 502.4049158632073
     },
     {
       "id": 2,
@@ -375,6 +386,20 @@
           "comment": "封面缩略图的id",
           "id": 6,
           "size": 255
+        },
+        {
+          "name": "modified_time",
+          "type": "DATETIME",
+          "default": "NOW()",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "id": 7,
+          "size": "",
+          "values": []
         }
       ],
       "comment": "项目",
@@ -469,8 +494,8 @@
     {
       "id": 4,
       "name": "pointclouds",
-      "x": 148.0586540440538,
-      "y": 717.6148349595048,
+      "x": 129.20216262082158,
+      "y": 738.3569755250603,
       "fields": [
         {
           "name": "id",
@@ -517,8 +542,8 @@
     {
       "id": 5,
       "name": "2d_change_detections",
-      "x": 1303.0730344695223,
-      "y": 144.00067297517393,
+      "x": 1158.2824009781941,
+      "y": 146.95558386275206,
       "fields": [
         {
           "name": "id",
@@ -675,8 +700,8 @@
     {
       "id": 7,
       "name": "2d_segmentations",
-      "x": 997.6028444269275,
-      "y": 453.26540620817457,
+      "x": 1027.1519533027088,
+      "y": 485.769425971534,
       "fields": [
         {
           "name": "id",
@@ -1055,6 +1080,17 @@
       "deleteConstraint": "No action",
       "name": "projects_cover_image_id_fk",
       "id": 19
+    },
+    {
+      "startTableId": 1,
+      "startFieldId": 13,
+      "endTableId": 1,
+      "endFieldId": 0,
+      "cardinality": "一对一",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "name": "objects_thumbnail_id_fk",
+      "id": 20
     }
   ],
   "notes": [],
