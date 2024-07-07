@@ -1,7 +1,6 @@
 /* 对话信息 */
 CREATE TABLE `conversations` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
-	`image_id` INT,
 	`messages` JSON,
 	`project_id` INT,
 	`is_deleted` BOOLEAN DEFAULT false,
@@ -108,14 +107,18 @@ CREATE TABLE `2d_detections` (
 	PRIMARY KEY(`id`)
 );
 
+CREATE TABLE `conversation_images` (
+	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
+	`conversation_id` INT,
+	`image_id` INT,
+	PRIMARY KEY(`id`)
+);
+
 -- ALTER TABLE `images`
 -- ADD FOREIGN KEY(`object_id`) REFERENCES `objects`(`id`)
 -- ON UPDATE CASCADE ON DELETE CASCADE;
 -- ALTER TABLE `pointclouds`
 -- ADD FOREIGN KEY(`object_id`) REFERENCES `objects`(`id`)
--- ON UPDATE NO ACTION ON DELETE NO ACTION;
--- ALTER TABLE `conversations`
--- ADD FOREIGN KEY(`image_id`) REFERENCES `images`(`id`)
 -- ON UPDATE NO ACTION ON DELETE NO ACTION;
 -- ALTER TABLE `conversations`
 -- ADD FOREIGN KEY(`project_id`) REFERENCES `projects`(`id`)
@@ -170,4 +173,10 @@ CREATE TABLE `2d_detections` (
 -- ON UPDATE NO ACTION ON DELETE NO ACTION;
 -- ALTER TABLE `objects`
 -- ADD FOREIGN KEY(`thumbnail_id`) REFERENCES `objects`(`id`)
+-- ON UPDATE NO ACTION ON DELETE NO ACTION;
+-- ALTER TABLE `conversation_images`
+-- ADD FOREIGN KEY(`image_id`) REFERENCES `images`(`id`)
+-- ON UPDATE NO ACTION ON DELETE NO ACTION;
+-- ALTER TABLE `conversation_images`
+-- ADD FOREIGN KEY(`conversation_id`) REFERENCES `conversations`(`id`)
 -- ON UPDATE NO ACTION ON DELETE NO ACTION;

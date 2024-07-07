@@ -1,4 +1,5 @@
 from .change_detection_2d_service import ChangeDetection2DService
+from .conversation_service import ConversationService
 from .detection_2d_service import Detection2DService
 from .object_service import ObjectService
 from .project_service import ProjectService
@@ -11,4 +12,6 @@ __all__ = (
     "Segmentation2DService",
     "Segmentation3DService",
     "ProjectService",
+    "ObjectService",
+    "ConversationService",
 )

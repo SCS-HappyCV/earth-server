@@ -18,8 +18,20 @@ class ProjectService:
     def get(self, id):
         return self.queries.get_project(id=id)
 
-    def list(self, row_count=10, offset=0):
-        results = self.queries.get_projects(row_count=row_count, offset=offset)
+    def list(
+        self,
+        types: tuple[str] = (
+            "2d_segmentation",
+            "2d_detection",
+            "2d_change_detection",
+            "3d_segmentation",
+        ),
+        row_count=9999,
+        offset=0,
+    ):
+        results = self.queries.get_projects(
+            row_count=row_count, offset=offset, types=types
+        )
         results = delete_fields(["is_deleted"], rows=results)
         return results
 

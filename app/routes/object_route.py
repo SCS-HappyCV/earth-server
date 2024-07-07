@@ -51,13 +51,8 @@ class ObjectController(Controller):
                     object_info = object_service.get_pointcloud(id)
                 case None:
                     object_info = object_service.get(id)
-        elif type:
-            object_info = object_service.get_all(type)
         else:
-            return Response(
-                ResponseWrapper(code=3, message="Invalid request"),
-                status_code=HTTP_400_BAD_REQUEST,
-            )
+            object_info = object_service.gets(type=type)
 
         if object_info is None:
             return Response(
@@ -106,6 +101,7 @@ class ObjectController(Controller):
                 result.pointcloud_ids.append(pointcloud_id)
                 result.object_ids.append(object_id)
             else:
+                logger.debug(f"Invalid file type: {mime_type}")
                 return Response(
                     ResponseWrapper(code=3, message="Invalid file type"),
                     status_code=HTTP_400_BAD_REQUEST,

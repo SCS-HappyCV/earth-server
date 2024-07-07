@@ -1,3 +1,4 @@
+from base64 import b64encode
 import os
 from pathlib import Path
 import traceback
@@ -8,6 +9,7 @@ import laspy
 from loguru import logger
 from minio import Minio
 from PIL import Image
+import pillow_avif
 from pugsql.compiler import Module
 
 from app.config import MINIO_BUCKET
@@ -245,6 +247,7 @@ class ObjectService:
                 return None
 
             objects_data = BoxList(objects_data)
+            logger.debug(f"获取到的对象数据: {objects_data}")
 
             # 获取Minio对象的分享链接
             for object_data in objects_data:
@@ -275,7 +278,7 @@ class ObjectService:
             logger.error(traceback.format_exc())
             return None
 
-    def get_image(self, id: int) -> Optional[Box]:
+    def get_image(self, id: int, *, should_base64=False) -> Optional[Box]:
         """
         获取图像元数据和分享链接
 
@@ -292,13 +295,22 @@ class ObjectService:
             logger.debug(f"获取到的图像数据: {image_data}")
 
             object_name = get_object_name(image_data.name, image_data.folders)
+
             # 获取Minio对象的分享链接
             share_link = self.minio_client.presigned_get_object(
                 self.bucket_name, object_name
             )
-
             result = Box({**image_data, "share_link": share_link})
-            logger.info(f"成功获取图像: {result.name}, ID: {id}")
+            logger.debug(f"成功获取图像: {result.name}, ID: {id}")
+
+            if should_base64:
+                # 获取图像的Base64编码
+                response = self.minio_client.get_object(self.bucket_name, object_name)
+                data = response.read()
+                base64_image = b64encode(data).decode("utf-8")
+                result.base64_image = base64_image
+                logger.debug("成功获取图像的Base64编码")
+
             return result
         except Exception as e:
             logger.error(f"获取图像时发生错误: {e}")

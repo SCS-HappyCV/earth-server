@@ -1,7 +1,7 @@
 {
   "author": "Unnamed",
   "title": "AI-Earth",
-  "date": "2024-07-06T13:46:32.168Z",
+  "date": "2024-07-07T08:12:53.441Z",
   "tables": [
     {
       "name": "conversations",
@@ -21,20 +21,6 @@
           "id": 0
         },
         {
-          "name": "image_id",
-          "type": "INT",
-          "comment": "",
-          "unique": false,
-          "increment": false,
-          "notNull": false,
-          "primary": false,
-          "default": "",
-          "check": "",
-          "id": 1,
-          "size": "",
-          "values": []
-        },
-        {
           "name": "messages",
           "type": "JSON",
           "comment": "",
@@ -44,7 +30,7 @@
           "primary": false,
           "default": "",
           "check": "",
-          "id": 2
+          "id": 1
         },
         {
           "name": "project_id",
@@ -56,7 +42,7 @@
           "notNull": false,
           "increment": false,
           "comment": "",
-          "id": 3,
+          "id": 2,
           "size": "",
           "values": []
         },
@@ -70,15 +56,15 @@
           "notNull": false,
           "increment": false,
           "comment": "",
-          "id": 4,
+          "id": 3,
           "size": "",
           "values": []
         }
       ],
       "indices": [],
       "id": 0,
-      "x": 146.9130320941847,
-      "y": 78.14923091202263
+      "x": 79.02966297054832,
+      "y": 47.97884463485099
     },
     {
       "name": "objects",
@@ -279,8 +265,8 @@
     {
       "id": 2,
       "name": "projects",
-      "x": 490.75271235677155,
-      "y": 182.36789957139746,
+      "x": 443.6114837986904,
+      "y": 122.02712701705383,
       "fields": [
         {
           "name": "id",
@@ -494,8 +480,8 @@
     {
       "id": 4,
       "name": "pointclouds",
-      "x": 129.20216262082158,
-      "y": 738.3569755250603,
+      "x": 148.05865404405404,
+      "y": 804.3546955063737,
       "fields": [
         {
           "name": "id",
@@ -640,8 +626,8 @@
     {
       "id": 6,
       "name": "3d_segmentations",
-      "x": 566.4552885631138,
-      "y": 680.8604767323293,
+      "x": 641.8812542560431,
+      "y": 750.6294949982889,
       "fields": [
         {
           "name": "id",
@@ -788,8 +774,8 @@
     {
       "id": 8,
       "name": "2d_detections",
-      "x": 465.93609206064184,
-      "y": -177.8810472956909,
+      "x": 403.70967036397496,
+      "y": -174.10974901104447,
       "fields": [
         {
           "name": "id",
@@ -858,6 +844,54 @@
       "indices": [],
       "color": "#175e7a",
       "key": 1718612253662
+    },
+    {
+      "id": 9,
+      "name": "conversation_images",
+      "x": -265.1038433933338,
+      "y": 162.64351286515148,
+      "fields": [
+        {
+          "name": "id",
+          "type": "INT",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": "",
+          "id": 0
+        },
+        {
+          "name": "conversation_id",
+          "type": "INT",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "id": 1
+        },
+        {
+          "name": "image_id",
+          "type": "INT",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "id": 2
+        }
+      ],
+      "comment": "",
+      "indices": [],
+      "color": "#175e7a",
+      "key": 1720337864610
     }
   ],
   "relationships": [
@@ -885,25 +919,14 @@
     },
     {
       "startTableId": 0,
-      "startFieldId": 1,
-      "endTableId": 3,
-      "endFieldId": 0,
-      "cardinality": "一对一",
-      "updateConstraint": "No action",
-      "deleteConstraint": "No action",
-      "name": "conversations_image_id_fk",
-      "id": 2
-    },
-    {
-      "startTableId": 0,
-      "startFieldId": 3,
+      "startFieldId": 2,
       "endTableId": 2,
       "endFieldId": 0,
       "cardinality": "一对一",
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "conversations_project_id_fk",
-      "id": 3
+      "id": 2
     },
     {
       "startTableId": 5,
@@ -914,7 +937,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_detection_project_id_fk",
-      "id": 4
+      "id": 3
     },
     {
       "startTableId": 5,
@@ -925,7 +948,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_detection_image1_id_fk",
-      "id": 5
+      "id": 4
     },
     {
       "startTableId": 5,
@@ -936,7 +959,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_detection_result_image_id_fk",
-      "id": 6
+      "id": 5
     },
     {
       "startTableId": 5,
@@ -947,7 +970,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_detection_image2_id_fk",
-      "id": 7
+      "id": 6
     },
     {
       "startTableId": 6,
@@ -958,7 +981,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "3d_segmentation_pointcloud_id_fk",
-      "id": 8
+      "id": 7
     },
     {
       "startTableId": 6,
@@ -969,7 +992,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "3d_segmentation_result_pointcloud_id_fk",
-      "id": 9
+      "id": 8
     },
     {
       "startTableId": 7,
@@ -980,7 +1003,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_segmentation_image_id_fk",
-      "id": 10
+      "id": 9
     },
     {
       "startTableId": 7,
@@ -991,7 +1014,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_segmentation_result_image_id_fk",
-      "id": 11
+      "id": 10
     },
     {
       "startTableId": 8,
@@ -1002,7 +1025,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_detections_image_id_fk",
-      "id": 12
+      "id": 11
     },
     {
       "startTableId": 8,
@@ -1013,7 +1036,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_detections_project_id_fk",
-      "id": 13
+      "id": 12
     },
     {
       "startTableId": 7,
@@ -1024,7 +1047,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_segmentations_project_id_fk",
-      "id": 14
+      "id": 13
     },
     {
       "startTableId": 6,
@@ -1035,7 +1058,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "3d_segmentations_project_id_fk",
-      "id": 15
+      "id": 14
     },
     {
       "startTableId": 7,
@@ -1046,7 +1069,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_segmentations_plot_image_id_fk",
-      "id": 16
+      "id": 15
     },
     {
       "startTableId": 8,
@@ -1057,7 +1080,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_detections_plot_image_id_fk",
-      "id": 17
+      "id": 16
     },
     {
       "startTableId": 5,
@@ -1068,7 +1091,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_change_detections_plot_image_id_fk",
-      "id": 18
+      "id": 17
     },
     {
       "startTableId": 2,
@@ -1079,7 +1102,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "projects_cover_image_id_fk",
-      "id": 19
+      "id": 18
     },
     {
       "startTableId": 1,
@@ -1090,7 +1113,29 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "objects_thumbnail_id_fk",
+      "id": 19
+    },
+    {
+      "startTableId": 9,
+      "startFieldId": 2,
+      "endTableId": 3,
+      "endFieldId": 0,
+      "cardinality": "多对一",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "name": "conversation_images_image_id_fk",
       "id": 20
+    },
+    {
+      "startTableId": 9,
+      "startFieldId": 1,
+      "endTableId": 0,
+      "endFieldId": 0,
+      "cardinality": "多对一",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "name": "conversation_images_conversation_id_fk",
+      "id": 21
     }
   ],
   "notes": [],

@@ -1,3 +1,4 @@
+import mimetypes
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +19,12 @@ from .config import (
     MINIO_SECRET_KEY,
     QUERIES_PATH,
 )
-from .routes import ObjectController, ProjectController, ProjectTaskController
+from .routes import (
+    ConversationController,
+    ObjectController,
+    ProjectController,
+    ProjectTaskController,
+)
 
 cors_config = CORSConfig()
 csrf_config = CSRFConfig(CRSF_SECRET)
@@ -47,7 +53,20 @@ def close_db_connection(app: Litestar):
     queries.disconnect()
 
 
-route_handlers = [ObjectController, ProjectController, ProjectTaskController]
+def add_mime_types(app: Litestar):
+    # 添加 webp MIME 类型
+    mimetypes.add_type("image/webp", ".webp")
+
+    # 添加 avif MIME 类型
+    mimetypes.add_type("image/avif", ".avif")
+
+
+route_handlers = [
+    ObjectController,
+    ProjectController,
+    ProjectTaskController,
+    ConversationController,
+]
 
 app = Litestar(
     route_handlers=route_handlers,
@@ -56,6 +75,6 @@ app = Litestar(
     cors_config=cors_config,
     # csrf_config=csrf_config,
     compression_config=compression_config,
-    on_startup=[get_db_connection],
+    on_startup=[get_db_connection, add_mime_types],
     on_shutdown=[close_db_connection],
 )

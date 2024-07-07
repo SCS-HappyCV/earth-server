@@ -1,7 +1,9 @@
 -- :name get_projects :many
 SELECT *
 FROM projects
-WHERE is_deleted = false
+WHERE
+	is_deleted = false
+	AND type IN :types
 LIMIT :offset, :row_count;
 
 -- :name get_project :one
