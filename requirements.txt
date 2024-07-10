@@ -1,0 +1,16 @@
+fire
+furl
+laspy
+litestar[full]
+loguru
+#matplotlib
+minio
+numpy
+open3d
+Pillow
+pillow-avif-plugin
+plumbum
+pugsql
+pydantic
+python-dotenv
+python-box[all]
