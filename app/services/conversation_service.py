@@ -1,6 +1,7 @@
 import json
 
 from box import Box, BoxList
+from loguru import logger
 from pugsql.compiler import Module
 
 from app.utils.conversation_funcs import delete_messages_images, merge_messages_images
@@ -64,37 +65,40 @@ class ConversationService:
         elif project_id:
             conversation = self.queries.get_conversation_by_project_id(project_id)
         else:
-            msg = "ID or project_id must be provided"
-            raise ValueError(msg)
+            logger.error(f"ID{id} or project_id must be provided")
+            return None
 
-        # 获取对话中的所有消息
-        conversation = BoxList(conversation)
+        if not conversation:
+            logger.error(f"Conversation {id} not found")
+            return None
 
-        # 获取对话中的所有图片
-        images = BoxList()
-        for conv in conversation:
-            image_id = conv.image_id
-            image = self.object_service.get_image(image_id, should_base64=True)
-            if not image:
-                msg = "Failed to get image"
-                raise ValueError(msg)
+        conversation = Box(conversation)
 
-            images.append(image)
+        # 获取对话中的所有图片id
+        image_ids = self.queries.get_conversation_image_ids(
+            conversation_id=conversation.id
+        )
+        image_ids = [image_id.image_id for image_id in BoxList(image_ids)]
+        # 获取所有图片
+        images = self.object_service.get_images(image_ids, should_base64=True)
 
         # 获取所有图片的 base64 编码
         base64_images = [image.base64_image for image in images]
+        # 合并消息和图片
         messages = merge_messages_images(
-            json.loads(conversation[0].messages), base64_images
+            json.loads(conversation.messages), base64_images
         )
 
         # 删除 base64_image 属性
         for image in images:
-            image.pop("base64_image")
+            del image["base64_image"]
 
-        # 返回对话中的所有消息和图片
-        conversation = {"id": id, "messages": messages, "images": images}
+        # 删除 conversation 中的 messages 属性
+        del conversation["messages"]
+        # 合并所有信息
+        conversation_info = {**conversation, "messages": messages, "images": images}
 
-        return conversation
+        return conversation_info
 
     def gets(self):
         conversations = self.queries.get_conversations()

@@ -1,7 +1,7 @@
 from typing import ClassVar
 
 from box import Box
-from litestar import Controller, Request, Response, delete, get, post
+from litestar import Controller, Request, Response, delete, get, post, put
 from litestar.datastructures import State
 from litestar.di import Provide
 from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_404_NOT_FOUND
@@ -73,3 +73,25 @@ class ProjectController(Controller):
             ResponseWrapper(code=2, message=f"Project with id {id} not found"),
             status_code=HTTP_404_NOT_FOUND,
         )
+
+    @put(path="/{id:int}", sync_to_thread=True)
+    def update(
+        self, data: dict, id: int, project_service: ProjectService
+    ) -> ResponseWrapper | Response:
+        logger.debug(f"Updating project with id {id}")
+
+        if not data:
+            return Response(
+                ResponseWrapper(code=3, message="Data is required"),
+                status_code=HTTP_404_NOT_FOUND,
+            )
+
+        result = project_service.update(id, **data)
+
+        if not result:
+            return Response(
+                ResponseWrapper(code=2, message=f"Project with id {id} not found"),
+                status_code=HTTP_404_NOT_FOUND,
+            )
+
+        return ResponseWrapper(message="Project updated successfully")

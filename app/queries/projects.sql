@@ -21,3 +21,13 @@ VALUES (:name, :type, :cover_image_id);
 UPDATE projects
 SET is_deleted = true
 WHERE id = :id;
+
+-- :name update_project_name :affected
+UPDATE projects
+SET name = :name
+WHERE id = :id;
+
+-- :name update_project_cover_image :affected
+UPDATE projects
+SET cover_image_id = :cover_image_id
+WHERE id = :id;

@@ -1,19 +1,35 @@
 from base64 import b64encode
 import os
 from pathlib import Path
+import shutil
+import tempfile
 import traceback
 from typing import Optional
 
 from box import Box, BoxList
+from furl import furl
 import laspy
 from loguru import logger
 from minio import Minio
 from PIL import Image
 import pillow_avif
+from plumbum.cmd import PotreePublisher
 from pugsql.compiler import Module
 
-from app.config import MINIO_BUCKET
-from app.utils.object_funcs import get_available_object_name, get_object_name
+from app.config import (
+    MINIO_BUCKET,
+    POTREE_BASE_DIR,
+    POTREE_BASE_URL,
+    POTREE_CLOUD_FOLDER,
+    POTREE_VIEWER_FOLDER,
+    SHARE_LINK_BASE_URL,
+)
+from app.utils.object_funcs import (
+    get_available_object_name,
+    get_object_base64,
+    get_object_name,
+)
+from app.utils.url import rewrite_base_url
 
 
 class ObjectService:
@@ -251,11 +267,7 @@ class ObjectService:
 
             # 获取Minio对象的分享链接
             for object_data in objects_data:
-                object_name = get_object_name(object_data.name, object_data.folders)
-                share_link = self.minio_client.presigned_get_object(
-                    self.bucket_name, object_name
-                )
-                object_data.share_link = share_link
+                self._populate_object(object_data, should_base64=False)
 
                 if object_data.thumbnail_id is not None:
                     # 获取缩略图的分享链接
@@ -278,7 +290,9 @@ class ObjectService:
             logger.error(traceback.format_exc())
             return None
 
-    def get_image(self, id: int, *, should_base64=False) -> Optional[Box]:
+    def get_image(
+        self, id: int = None, object_id=None, *, should_base64=False
+    ) -> Optional[Box]:
         """
         获取图像元数据和分享链接
 
@@ -286,7 +300,14 @@ class ObjectService:
         :return: 包含图像元数据和分享链接的Box对象，如果获取失败则返回None
         """
         try:
-            image_data = self.queries.get_image(id=id)
+            if id:
+                image_data = self.queries.get_image(id=id)
+            elif object_id:
+                image_data = self.queries.get_image_by_object_id(object_id=object_id)
+            else:
+                logger.warning("未提供ID或对象ID")
+                return None
+
             if not image_data:
                 logger.warning(f"未找到ID为{id}的图像")
                 return None
@@ -294,30 +315,16 @@ class ObjectService:
             image_data = Box(image_data)
             logger.debug(f"获取到的图像数据: {image_data}")
 
-            object_name = get_object_name(image_data.name, image_data.folders)
+            # 填充图像数据
+            self._populate_object(image_data, should_base64=should_base64)
 
-            # 获取Minio对象的分享链接
-            share_link = self.minio_client.presigned_get_object(
-                self.bucket_name, object_name
-            )
-            result = Box({**image_data, "share_link": share_link})
-            logger.debug(f"成功获取图像: {result.name}, ID: {id}")
-
-            if should_base64:
-                # 获取图像的Base64编码
-                response = self.minio_client.get_object(self.bucket_name, object_name)
-                data = response.read()
-                base64_image = b64encode(data).decode("utf-8")
-                result.base64_image = base64_image
-                logger.debug("成功获取图像的Base64编码")
-
-            return result
+            return image_data
         except Exception as e:
             logger.error(f"获取图像时发生错误: {e}")
             logger.error(traceback.format_exc())
             return None
 
-    def get_images(self, ids: list[int]) -> BoxList | None:
+    def get_images(self, ids: list[int], *, should_base64=False) -> BoxList | None:
         """
         获取多个图像元数据和分享链接
 
@@ -334,11 +341,8 @@ class ObjectService:
 
             # 获取Minio对象的分享链接
             for image_data in images_data:
-                object_name = get_object_name(image_data.name, image_data.folders)
-                share_link = self.minio_client.presigned_get_object(
-                    self.bucket_name, object_name
-                )
-                image_data.share_link = share_link
+                # 填充图像数据
+                self._populate_object(image_data, should_base64=should_base64)
 
             logger.info(f"成功获取ID为{ids}的图像")
             return images_data
@@ -347,7 +351,83 @@ class ObjectService:
             logger.error(traceback.format_exc())
             return
 
-    def get_pointcloud(self, id: int) -> Optional[Box]:
+    def _populate_object(
+        self, object_data: dict, *, should_base64=False, should_thumbnail=False
+    ) -> None:
+        """
+        填充对象数据
+
+        :param image_data: 对象数据
+        :return: None
+        """
+
+        # 获取Minio对象名
+        object_name = get_object_name(object_data["name"], object_data["folders"])
+
+        # 获取Minio对象的分享链接
+        # share_link = self.minio_client.presigned_get_object(
+        #     self.bucket_name, object_name
+        # )
+        # share_link = rewrite_base_url(share_link, SHARE_LINK_BASE_URL)
+
+        share_link = furl(f"{SHARE_LINK_BASE_URL}/{MINIO_BUCKET}/{object_name}").url
+        object_data["share_link"] = share_link
+
+        if should_base64:
+            # 获取对象的Base64编码
+            base64_image = get_object_base64(
+                self.minio_client, self.bucket_name, object_name
+            )
+            object_data["base64_image"] = base64_image
+
+    def _populate_potree(self, object_data: dict) -> None:
+        """
+        填充对象数据的Potree分享链接
+
+        :param object_data: 对象数据
+        :return: None
+        """
+        try:
+            # 利用etag生成唯一的临时文件名
+            etag = object_data["etag"]
+            tmp_file_path = f"/tmp/{etag}.las"
+
+            # 获取Potree分享链接
+            potree_link = furl(
+                f"{POTREE_BASE_URL}/{POTREE_VIEWER_FOLDER}/{etag}.html"
+            ).url
+
+            # 检测生成文件是否已经存在
+            potree_html_path = (
+                Path(POTREE_BASE_DIR) / POTREE_VIEWER_FOLDER / f"{etag}.html"
+            )
+            if potree_html_path.is_file():
+                logger.info(f"Potree文件已存在: {tmp_file_path}")
+                object_data["potree_link"] = potree_link
+                return
+
+            # 获取Minio对象名
+            object_name = get_object_name(object_data["name"], object_data["folders"])
+
+            # 从Minio下载文件
+            self.minio_client.fget_object(self.bucket_name, object_name, tmp_file_path)
+
+            # 运行PotreePublisher
+            PotreePublisher[tmp_file_path]()
+
+            # 填充对象数据
+            object_data["potree_link"] = potree_link
+
+        except Exception as e:
+            logger.error(f"填充Potree分享链接时发生错误: {e}")
+            logger.error(traceback.format_exc())
+            raise
+
+        finally:
+            # 删除临时文件
+            Path(tmp_file_path).unlink(missing_ok=True)
+
+    def get_pointcloud(self, id: int = None, object_id: int = None) -> Optional[Box]:
         """
         获取点云元数据和分享链接
 
@@ -355,7 +435,16 @@ class ObjectService:
         :return: 包含点云元数据和分享链接的Box对象，如果获取失败则返回None
         """
         try:
-            pointcloud_data = self.queries.get_pointcloud(id=id)
+            if id:
+                pointcloud_data = self.queries.get_pointcloud(id=id)
+            elif object_id:
+                pointcloud_data = self.queries.get_pointcloud_by_object_id(
+                    object_id=object_id
+                )
+            else:
+                logger.warning("未提供ID或对象ID")
+                return None
+
             if not pointcloud_data:
                 logger.warning(f"未找到ID为{id}的点云")
                 return None
@@ -363,18 +452,14 @@ class ObjectService:
             pointcloud_data = Box(pointcloud_data)
             logger.debug(f"获取到的点云数据: {pointcloud_data}")
 
-            object_name = get_object_name(pointcloud_data.name, pointcloud_data.folders)
+            # 填充点云数据
+            self._populate_object(pointcloud_data)
 
-            # 获取Minio对象的分享链接
-            share_link = self.minio_client.presigned_get_object(
-                self.bucket_name, object_name
-            )
+            # 填充Potree分享链接
+            self._populate_potree(pointcloud_data)
 
-            logger.debug(f"分享链接: {share_link}")
-
-            result = Box({**pointcloud_data, "share_link": share_link})
-            logger.info(f"成功获取点云: {result.name}, ID: {id}")
-            return result
+            logger.info(f"成功获取点云: {pointcloud_data.name}, ID: {id}")
+            return pointcloud_data
         except Exception as e:
             logger.error(f"获取点云时发生错误: {e}")
             logger.error(traceback.format_exc())
@@ -465,6 +550,8 @@ class ObjectService:
         object_id = self.queries.insert_object(
             name=name,
             etag=object_stat.etag,
+            created_time=object_stat.last_modified,
+            updated_time=object_stat.last_modified,
             modified_time=object_stat.last_modified,
             size=object_stat.size,
             content_type=object_stat.content_type,
@@ -474,80 +561,3 @@ class ObjectService:
         )
 
         return object_id
-
-    def copy_object(self, source_id: int, new_name: str) -> Optional[int]:
-        """
-        复制对象
-
-        :param source_id: 源对象ID
-        :param new_name: 新对象名称
-        :return: 新对象ID，如果复制失败则返回None
-        """
-        try:
-            source_object = self.queries.get_object(id=source_id)
-            if not source_object:
-                logger.warning(f"未找到ID为{source_id}的源对象")
-                return None
-
-            new_object_name = f"{Path(source_object.folders).parent}/{new_name}"
-
-            # 在Minio中复制对象
-            result = self.minio_client.copy_object(
-                self.bucket_name,
-                new_object_name,
-                f"{self.bucket_name}/{source_object.folders}",
-            )
-
-            # 在数据库中创建新对象记录
-            new_object_id = self.queries.insert_object(
-                name=new_name,
-                etag=result.etag,
-                modified_time=result.last_modified,
-                size=source_object.size,
-                content_type=source_object.content_type,
-                folders=new_object_name,
-            )
-
-            logger.info(f"成功复制对象: {source_object.name} -> {new_name}")
-            return new_object_id
-        except Exception as e:
-            logger.error(f"复制对象时发生错误: {e}")
-            logger.error(traceback.format_exc())
-            return None
-
-    def move_object(self, object_id: int, new_folder: str) -> bool:
-        """
-        移动对象到新文件夹
-
-        :param object_id: 对象ID
-        :param new_folder: 新文件夹路径
-        :return: 移动是否成功
-        """
-        try:
-            object_data = self.queries.get_object(id=object_id)
-            if not object_data:
-                logger.warning(f"未找到ID为{object_id}的对象")
-                return False
-
-            old_object_name = object_data.folders
-            new_object_name = f"{new_folder}/{Path(old_object_name).name}"
-
-            # 在Minio中复制对象到新位置
-            self.minio_client.copy_object(
-                self.bucket_name,
-                new_object_name,
-                f"{self.bucket_name}/{old_object_name}",
-            )
-
-            # 删除旧对象
-            self.minio_client.remove_object(self.bucket_name, old_object_name)
-
-            # 更新数据库中的对象记录
-            self.queries.update_object_folder(id=object_id, folders=new_object_name)
-
-            logger.info(f"成功移动对象: {object_data.name} -> {new_object_name}")
-            return True
-        except Exception as e:
-            logger.error(f"移动对象时发生错误: {e}")
-            logger.error(traceback.format_exc())
-            return False

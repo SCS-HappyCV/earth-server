@@ -6,17 +6,45 @@ VALUES (:object_id, :channel_count, :height, :width);
 INSERT INTO pointclouds (object_id, point_count)
 VALUES (:object_id, :point_count);
 
+-- :name insert_object :insert
+INSERT INTO objects (
+	name,
+	etag,
+	created_time,
+	updated_time,
+	modified_time,
+	size,
+	content_type,
+	folders,
+	origin_name,
+	type
+) VALUES (
+	:name,
+	:etag,
+	:created_time,
+	:updated_time,
+	:modified_time,
+	:size,
+	:content_type,
+	:folders,
+	:origin_name,
+	:type
+);
+
 -- :name get_image :one
 SELECT
 	i.*,
 	o.name,
 	o.etag,
+	o.created_time,
+	o.updated_time,
 	o.modified_time,
 	o.size,
 	o.content_type,
 	o.folders,
 	o.tags,
 	o.origin_name,
+	o.origin_type,
 	o.versions,
 	o.type
 FROM
@@ -27,17 +55,44 @@ WHERE
 	AND i.id = :id
 	AND o.is_deleted = FALSE;
 
--- :name get_pointcloud :one
+-- :name get_image_by_object_id :one
 SELECT
-	p.*,
+	i.*,
 	o.name,
 	o.etag,
+	o.created_time,
+	o.updated_time,
 	o.modified_time,
 	o.size,
 	o.content_type,
 	o.folders,
 	o.tags,
 	o.origin_name,
+	o.origin_type,
+	o.versions,
+	o.type
+FROM
+	images AS i,
+	objects AS o
+WHERE
+	i.object_id = o.id
+	AND i.object_id = :object_id
+	AND o.is_deleted = FALSE;
+
+-- :name get_pointcloud :one
+SELECT
+	p.*,
+	o.name,
+	o.etag,
+	o.created_time,
+	o.updated_time,
+	o.modified_time,
+	o.size,
+	o.content_type,
+	o.folders,
+	o.tags,
+	o.origin_name,
+	o.origin_type,
 	o.versions,
 	o.type
 FROM
@@ -46,6 +101,30 @@ FROM
 WHERE
 	p.object_id = o.id
 	AND p.id = :id
+	AND o.is_deleted = FALSE;
+
+-- :name get_pointcloud_by_object_id :one
+SELECT
+	p.*,
+	o.name,
+	o.etag,
+	o.created_time,
+	o.updated_time,
+	o.modified_time,
+	o.size,
+	o.content_type,
+	o.folders,
+	o.tags,
+	o.origin_name,
+	o.origin_type,
+	o.versions,
+	o.type
+FROM
+	pointclouds AS p,
+	objects AS o
+WHERE
+	p.object_id = o.id
+	AND p.object_id = :object_id
 	AND o.is_deleted = FALSE;
 
 -- :name get_object :one
@@ -64,27 +143,6 @@ FROM
 WHERE
 	id = :id
 	AND is_deleted = FALSE;
-
--- :name insert_object :insert
-INSERT INTO objects (
-	name,
-	etag,
-	modified_time,
-	size,
-	content_type,
-	folders,
-	origin_name,
-	type
-) VALUES (
-	:name,
-	:etag,
-	:modified_time,
-	:size,
-	:content_type,
-	:folders,
-	:origin_name,
-	:type
-);
 
 -- :name delete_image :affected
 UPDATE images
@@ -111,18 +169,8 @@ WHERE
 	AND is_deleted = FALSE;
 
 -- :name get_objects_by_ids :many
-SELECT
-	id,
-	name,
-	etag,
-	modified_time,
-	size,
-	versions,
-	content_type,
-	folders,
-	tags
-FROM
-	objects
+SELECT *
+FROM objects
 WHERE
 	id IN :ids
 	AND is_deleted = FALSE;
@@ -140,6 +188,8 @@ SELECT
 	o.type,
 	o.name,
 	o.etag,
+	o.created_time,
+	o.updated_time,
 	o.modified_time,
 	o.size,
 	o.versions,
@@ -161,6 +211,8 @@ SELECT
 	o.name,
 	o.type,
 	o.etag,
+	o.created_time,
+	o.updated_time,
 	o.modified_time,
 	o.size,
 	o.versions,
@@ -168,7 +220,8 @@ SELECT
 	o.folders,
 	o.tags,
 	o.origin_name,
-	o.origin_type
+	o.origin_type,
+	o.thumbnail_id
 FROM images AS i, objects AS o
 WHERE
 	i.object_id = o.id
@@ -182,6 +235,8 @@ SELECT
 	o.name,
 	o.type,
 	o.etag,
+	o.created_time,
+	o.updated_time,
 	o.modified_time,
 	o.size,
 	o.versions,

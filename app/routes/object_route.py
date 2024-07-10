@@ -37,20 +37,25 @@ class ObjectController(Controller):
         object_service: ObjectService,
         id: int | None = None,
         ids: list[int] | None = None,
+        object_id: int | None = None,
         type: str | None = None,
+        *,
+        should_base64: bool = False,
     ) -> ResponseWrapper:
         if ids and type == "image":
             logger.info("Getting images")
-            object_info = object_service.get_images(ids)
-        elif id:
+            object_info = object_service.get_images(ids, should_base64=should_base64)
+        elif id or object_id:
             match type:
                 case "image":
                     logger.info("Getting image")
-                    object_info = object_service.get_image(id)
+                    object_info = object_service.get_image(id=id, object_id=object_id)
                 case "pointcloud":
-                    object_info = object_service.get_pointcloud(id)
+                    object_info = object_service.get_pointcloud(
+                        id=id, object_id=object_id
+                    )
                 case None:
-                    object_info = object_service.get(id)
+                    object_info = object_service.get(id=object_id)
         else:
             object_info = object_service.gets(type=type)
 

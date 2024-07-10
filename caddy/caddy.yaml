@@ -1,0 +1,46 @@
+apps:
+  http:
+    servers:
+      example:
+        listen:
+          - :80
+        routes:
+          - match:
+              - path:
+                  - /potree/*
+            handle:
+              - handler: rewrite
+                strip_path_prefix: /potree
+              - handler: file_server
+                root: /srv/www/potree
+          - match:
+              - path:
+                  - /file/*
+            handle:
+              # 反向代理minio的文件服务
+              - handler: rewrite
+                strip_path_prefix: /file
+              - handler: reverse_proxy
+                upstreams:
+                  - dial: 172.16.74.101:9000
+          - match:
+              - path:
+                  - /api/*
+            handle:
+              - handler: rewrite
+                strip_path_prefix: /api
+              - handler: reverse_proxy
+                upstreams:
+                  - dial: localhost:8000
+              - handler: headers
+                response:
+                  set:
+                    Access-Control-Allow-Origin:
+                      - "*"
+                    Access-Control-Allow-Methods:
+                      - GET, POST, PUT, DELETE, OPTIONS
+                    Access-Control-Allow-Headers:
+                      - Origin, Content-Type, Accept
+          - handle:
+              - handler: file_server
+                root: /srv/www/earth

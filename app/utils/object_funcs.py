@@ -1,9 +1,11 @@
+from base64 import b64encode
 from pathlib import Path
 import shutil
 import socket
 import traceback
 
 from fire import Fire
+from furl import furl
 from loguru import logger
 from minio import Minio
 from minio.error import S3Error
@@ -79,5 +81,36 @@ def get_available_object_name(client: Minio, bucket_name: str, object_name: str)
 
     except Exception as e:
         logger.error(f"获取可用对象名时发生错误: {e}")
+        logger.error(f"错误堆栈跟踪:\n{traceback.format_exc()}")
+        return None
+
+
+def get_object_base64(client: Minio, bucket_name: str, object_name: str) -> str:
+    """
+    获取 minio 对象的 base64 编码。
+
+    Args:
+        client: Minio 客户端实例
+        bucket_name: 存储桶名称
+        object_name: 对象名
+
+    Returns:
+        base64 编码的对象内容
+    """
+    try:
+        logger.info(f"正在获取对象 {object_name} 的 base64 编码")
+
+        # 读取对象内容
+        data = client.get_object(bucket_name, object_name)
+        data = data.read()
+
+        # 对象内容 base64 编码
+        data = b64encode(data).decode("utf-8")
+        logger.info(f"获取对象 {object_name} 的 base64 编码成功")
+
+        return data
+
+    except Exception as e:
+        logger.error(f"获取对象 {object_name} 的 base64 编码时发生错误: {e}")
         logger.error(f"错误堆栈跟踪:\n{traceback.format_exc()}")
         return None

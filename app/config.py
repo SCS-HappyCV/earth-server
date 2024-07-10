@@ -23,3 +23,12 @@ MINIO_BUCKET = os.getenv("MINIO_BUCKET", default="ai-earth")
 
 
 CRSF_SECRET = os.getenv("CSRF_SECRET")
+
+SHARE_LINK_BASE_URL = os.getenv(
+    "SHARE_LINK_BASE_URL", default=f"http://{PUBLIC_IP}/file"
+)
+POTREE_BASE_URL = os.getenv("POTREE_BASE_URL", default=f"http://{PUBLIC_IP}/potree")
+POTREE_BASE_DIR = os.getenv("POTREE_BASE_DIR", default="/srv/www/potree")
+POTREE_SERVER_ROOT = os.getenv("POTREE_SERVER_ROOT", default="/srv/www/potree")
+POTREE_CLOUD_FOLDER = os.getenv("POTREE_CLOUD_FOLDER", default="pointclouds")
+POTREE_VIEWER_FOLDER = os.getenv("POTREE_VIEWER_FOLDER", default="viewer")

@@ -35,8 +35,20 @@ class ProjectService:
         results = delete_fields(["is_deleted"], rows=results)
         return results
 
-    # def update(self, project_id, project):
-    #     return self.queries.update_project(self.db, project_id, project)
+    def update(self, id, name=None, cover_image_id=None):
+        if not any([name, cover_image_id]):
+            return False
+
+        logger.debug(f"Updating project with id {id}")
+
+        if name:
+            self.queries.update_project_name(id=id, name=name)
+        if cover_image_id:
+            self.queries.update_project_cover_image(
+                id=id, cover_image_id=cover_image_id
+            )
+
+        return True
 
     def delete(self, id):
         return self.queries.delete_project(id=id)
