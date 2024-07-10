@@ -11,6 +11,7 @@ Pillow
 pillow-avif-plugin
 plumbum
 pugsql
+pymysql
 pydantic
 python-dotenv
 python-box[all]
