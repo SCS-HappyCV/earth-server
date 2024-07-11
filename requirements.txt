@@ -6,7 +6,7 @@ loguru
 #matplotlib
 minio
 numpy
-open3d
+#open3d
 Pillow
 pillow-avif-plugin
 plumbum
