@@ -2,6 +2,8 @@ import os
 
 from dotenv import load_dotenv
 
+from config import *
+
 load_dotenv()
 
 QUERIES_PATH = "app/queries/"

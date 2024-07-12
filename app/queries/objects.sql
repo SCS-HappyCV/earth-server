@@ -31,6 +31,11 @@ INSERT INTO objects (
 	:type
 );
 
+-- :name update_thumbnail_id :affected
+UPDATE objects
+SET thumbnail_id = :image_id
+WHERE id = :id;
+
 -- :name get_image :one
 SELECT
 	i.*,

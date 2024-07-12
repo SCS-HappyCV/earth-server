@@ -94,9 +94,11 @@ class ObjectController(Controller):
                 f.write(file.file.read())
 
             if mime_type.parent.name == "image":
-                image_id, object_id = object_service.save_image(
+                image_info = object_service.save_image(
                     file.filename, tmp_file, content_type=str(mime_type)
                 )
+                image_info = Box(image_info)
+                image_id, object_id = image_info.image_id, image_info.object_id
                 result.image_ids.append(image_id)
                 result.object_ids.append(object_id)
             elif mime_type.name in ["octet-stream", "vnd.las", "vnd.laz"]:

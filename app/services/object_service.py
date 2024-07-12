@@ -24,6 +24,7 @@ from app.config import (
     POTREE_VIEWER_FOLDER,
     SHARE_LINK_BASE_URL,
 )
+from app.utils.image_funcs import get_metadata, tiff2jpg
 from app.utils.object_funcs import (
     get_available_object_name,
     get_object_base64,
@@ -40,7 +41,41 @@ class ObjectService:
 
     def save_image(
         self, name: str, file_path: Path, content_type: str = "image/jpeg"
-    ) -> Optional[int]:
+    ) -> int | None:
+        # 保存图像文件到Minio并将元数据存储到数据库中
+        image_info = self._save_image(name, file_path, content_type)
+
+        # 测试图像是否为tif格式，如果是则转换为jpg格式，保存为缩略图
+        if content_type != "image/tiff":
+            return image_info
+
+        # 将tif格式的图像转换为jpg格式
+        jpg_path = tiff2jpg(file_path)
+
+        # 保存缩略图到Minio并将元数据存储到数据库中
+        thumbnail_info = self._save_image(name, jpg_path, "image/jpeg")
+
+        # 更新图像的缩略图ID
+        thumbnail_info = Box(thumbnail_info)
+        thumbnail_info.id = thumbnail_info.object_id
+        del thumbnail_info["object_id"]
+        result = self.queries.update_thumbnail_id(**thumbnail_info)
+
+        # 校验结果
+        if not result:
+            logger.error(f"更新图像的缩略图ID时发生错误: {result}")
+            return None
+
+        # 删除临时文件
+        jpg_path = Path(jpg_path)
+        jpg_path.unlink(missing_ok=True)
+
+        # 返回
+        return image_info
+
+    def _save_image(
+        self, name: str, file_path: Path, content_type: str = "image/jpeg"
+    ) -> dict | None:
         """
         保存图像文件到Minio并将元数据存储到数据库中
 
@@ -62,30 +97,8 @@ class ObjectService:
             name = Path(object_name).name
 
             # 获取图像元数据
-            mode_to_bpp = {
-                "1": 1,
-                "L": 8,
-                "P": 8,
-                "RGB": 24,
-                "RGBA": 32,
-                "CMYK": 32,
-                "YCbCr": 24,
-                "I": 32,
-                "F": 32,
-            }
-            with Image.open(file_path) as img:
-                width, height = img.size
-                channel_count = len(img.getbands())
-                bit_depth = mode_to_bpp.get(img.mode, "Unknown")
-
-            metadata = {
-                "width": width,
-                "height": height,
-                "channel_count": channel_count,
-                "origin_name": origin_name,
-                "bit_depth": bit_depth,
-                "type": "image",
-            }
+            metadata = get_metadata(file_path)
+            metadata |= {"origin_name": origin_name, "type": "image"}
 
             # 上传文件到Minio
             self.minio_client.fput_object(
@@ -105,7 +118,7 @@ class ObjectService:
             image_id = self.queries.insert_image(object_id=object_id, **metadata)
 
             logger.info(f"成功保存图像: {name}, ID: {image_id}")
-            return image_id, object_id
+            return {"image_id": image_id, "object_id": object_id}
         except Exception as e:
             logger.error(f"保存图像时发生错误: {e}")
             logger.error(traceback.format_exc())
@@ -267,13 +280,14 @@ class ObjectService:
 
             # 获取Minio对象的分享链接
             for object_data in objects_data:
-                self._populate_object(object_data, should_base64=False)
+                self._populate_object(object_data)
 
                 if object_data.thumbnail_id is not None:
                     # 获取缩略图的分享链接
                     thumbnail_data = self.queries.get_object(
                         id=object_data.thumbnail_id
                     )
+                    thumbnail_data = Box(thumbnail_data)
                     thumbnail_name = get_object_name(
                         thumbnail_data.name, thumbnail_data.folders
                     )
@@ -427,7 +441,9 @@ class ObjectService:
             # 删除临时文件
             Path(tmp_file_path).unlink(missing_ok=True)
 
-    def get_pointcloud(self, id: int = None, object_id: int = None) -> Optional[Box]:
+    def get_pointcloud(
+        self, id: int | None = None, object_id: int | None = None
+    ) -> Optional[Box]:
         """
         获取点云元数据和分享链接
 
