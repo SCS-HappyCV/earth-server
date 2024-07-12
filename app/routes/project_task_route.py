@@ -32,7 +32,7 @@ def change_detection_2d_service_provider(state: State) -> ChangeDetection2DServi
 
 
 def segmentation_2d_service_provider(state: State) -> Segmentation2DService:
-    return Segmentation2DService(state.queries)
+    return Segmentation2DService(state.queries, state.minio_client)
 
 
 def segmentation_3d_service_provider(state: State) -> Segmentation3DService:
@@ -121,7 +121,10 @@ class ProjectTaskController(Controller):
             case "2d_detection":
                 task_id, project_id = detection_2d_service.create(**data)
             case "2d_segmentation":
-                task_id, project_id = segmentation_2d_service.create(**data)
+                task_info = segmentation_2d_service.create(**data)
+
+                task_id = task_info["id"]
+                project_id = task_info["project_id"]
             case "2d_change_detection":
                 task_id, project_id = change_detection_2d_service.create(**data)
             case "3d_segmentation":

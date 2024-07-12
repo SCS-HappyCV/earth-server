@@ -1,5 +1,8 @@
+import json
+
 from box import Box, BoxList
 from pugsql.compiler import Module
+from redis import Redis
 
 from app.utils.table_funcs import delete_fields
 
@@ -7,9 +10,10 @@ from .project_service import ProjectService
 
 
 class Detection2DService:
-    def __init__(self, queries: Module):
+    def __init__(self, queries: Module, redis_client: Redis):
         self.queries = queries
         self.project_service = ProjectService(queries)
+        self.redis_client = redis_client
 
     def create(self, image_id, project_id=None, project_name=None, **kwargs):
         with self.queries.transaction() as tx:
@@ -34,6 +38,13 @@ class Detection2DService:
                 msg = "Failed to create 2d detection"
                 raise ValueError(msg)
 
+        # 将任务发送到 Redis
+        message = {"input_image_id": image_id, "id": last_id}
+        self.redis_client.rpush(
+            "2d_detections", json.dumps(message, ensure_ascii=False, indent="\t")
+        )
+
+        # 返回创建的 2D 检测的 ID 和项目 ID
         return last_id, project_id
 
     def get(self, *, id=None, project_id=None):

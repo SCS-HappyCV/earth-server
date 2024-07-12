@@ -52,7 +52,7 @@ class ObjectController(Controller):
                     object_info = object_service.get_image(id=id, object_id=object_id)
                 case "pointcloud":
                     object_info = object_service.get_pointcloud(
-                        id=id, object_id=object_id
+                        id=id, object_id=object_id, is_classified=False
                     )
                 case None:
                     object_info = object_service.get(id=object_id)

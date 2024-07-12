@@ -1,4 +1,5 @@
 from base64 import b64encode
+import mimetypes
 import os
 from pathlib import Path
 import shutil
@@ -40,8 +41,11 @@ class ObjectService:
         self.bucket_name = MINIO_BUCKET
 
     def save_image(
-        self, name: str, file_path: Path, content_type: str = "image/jpeg"
+        self, name: str, file_path: Path, content_type: str | None = None
     ) -> int | None:
+        if content_type is None:
+            content_type = mimetypes.guess_type(file_path, strict=False)[0]
+
         # 保存图像文件到Minio并将元数据存储到数据库中
         image_info = self._save_image(name, file_path, content_type)
 
@@ -280,21 +284,7 @@ class ObjectService:
 
             # 获取Minio对象的分享链接
             for object_data in objects_data:
-                self._populate_object(object_data)
-
-                if object_data.thumbnail_id is not None:
-                    # 获取缩略图的分享链接
-                    thumbnail_data = self.queries.get_object(
-                        id=object_data.thumbnail_id
-                    )
-                    thumbnail_data = Box(thumbnail_data)
-                    thumbnail_name = get_object_name(
-                        thumbnail_data.name, thumbnail_data.folders
-                    )
-                    thumbnail_link = self.minio_client.presigned_get_object(
-                        self.bucket_name, thumbnail_name
-                    )
-                    object_data.thumbnail_link = thumbnail_link
+                self._populate_object(object_data, should_thumbnail=True)
 
             logger.info(f"成功获取所有类型为{type}的对象")
 
@@ -375,26 +365,46 @@ class ObjectService:
         :return: None
         """
 
-        # 获取Minio对象名
-        object_name = get_object_name(object_data["name"], object_data["folders"])
-
         # 获取Minio对象的分享链接
-        # share_link = self.minio_client.presigned_get_object(
-        #     self.bucket_name, object_name
-        # )
-        # share_link = rewrite_base_url(share_link, SHARE_LINK_BASE_URL)
+        self._populate_link(object_data, "share_link")
 
-        share_link = furl(f"{SHARE_LINK_BASE_URL}/{MINIO_BUCKET}/{object_name}").url
-        object_data["share_link"] = share_link
-
+        # 获取对象的Base64编码
         if should_base64:
-            # 获取对象的Base64编码
+            # 获取Minio对象名
+            object_name = get_object_name(object_data["name"], object_data["folders"])
+            # 获取Base64编码
             base64_image = get_object_base64(
                 self.minio_client, self.bucket_name, object_name
             )
             object_data["base64_image"] = base64_image
 
-    def _populate_potree(self, object_data: dict) -> None:
+        if should_thumbnail and object_data.thumbnail_id is not None:
+            # 获取缩略图的分享链接
+            thumbnail_data = self.queries.get_image(id=object_data.thumbnail_id)
+            self._populate_link(thumbnail_data, "thumbnail_link")
+
+    def _populate_link(self, object_data: dict, key: str) -> None:
+        """
+        填充对象数据的分享链接
+
+        :param object_data: 对象数据
+        :return: None
+        """
+        try:
+            # 获取Minio对象名
+            object_name = get_object_name(object_data["name"], object_data["folders"])
+
+            # 获取Minio对象的分享链接
+            # share_link = self.minio_client.presigned_get_object(
+            #     self.bucket_name, object_name
+            # )
+            share_link = furl(f"{SHARE_LINK_BASE_URL}/{MINIO_BUCKET}/{object_name}").url
+            object_data[key] = share_link
+        except Exception as e:
+            logger.error(f"填充分享链接时发生错误: {e}")
+            logger.error(traceback.format_exc())
+
+    def _populate_potree(self, object_data: dict, *, is_classified: bool) -> None:
         """
         填充对象数据的Potree分享链接
 
@@ -427,7 +437,8 @@ class ObjectService:
             self.minio_client.fget_object(self.bucket_name, object_name, tmp_file_path)
 
             # 运行PotreePublisher
-            PotreePublisher[tmp_file_path]()
+            is_classified = "--classified" if is_classified else "--no-classified"
+            PotreePublisher[is_classified, tmp_file_path]()
 
             # 填充对象数据
             object_data["potree_link"] = potree_link
@@ -442,7 +453,12 @@ class ObjectService:
             Path(tmp_file_path).unlink(missing_ok=True)
 
     def get_pointcloud(
-        self, id: int | None = None, object_id: int | None = None
+        self,
+        id: int | None = None,
+        object_id: int | None = None,
+        *,
+        should_potree: bool = True,
+        is_classified=False,
     ) -> Optional[Box]:
         """
         获取点云元数据和分享链接
@@ -472,7 +488,8 @@ class ObjectService:
             self._populate_object(pointcloud_data)
 
             # 填充Potree分享链接
-            self._populate_potree(pointcloud_data)
+            if should_potree:
+                self._populate_potree(pointcloud_data, is_classified=is_classified)
 
             logger.info(f"成功获取点云: {pointcloud_data.name}, ID: {id}")
             return pointcloud_data
@@ -577,3 +594,35 @@ class ObjectService:
         )
 
         return object_id
+
+    def copy2local(
+        self, object_data: dict, output_path: str | Path | None = None
+    ) -> Path | None:
+        """
+        将Minio对象复制到本地文件
+
+        :param object_data: 对象数据
+        :param output_path: 输出路径
+        :return: 本地文件路径
+        """
+        try:
+            # 获取Minio对象名
+            object_name = get_object_name(object_data["name"], object_data["folders"])
+
+            if output_path is None:
+                # 生成临时命名文件
+                with tempfile.NamedTemporaryFile(
+                    delete=False, suffix=Path(object_name).suffix
+                ) as temp_file:
+                    temp_file_path = Path(temp_file.name)
+
+                output_path = temp_file_path
+
+            # 从Minio下载文件
+            self.minio_client.fget_object(self.bucket_name, object_name, output_path)
+
+            return output_path
+        except Exception as e:
+            logger.error(f"复制Minio对象到临时文件夹时发生错误: {e}")
+            logger.error(traceback.format_exc())
+            return None
