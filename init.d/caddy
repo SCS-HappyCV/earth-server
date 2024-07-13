@@ -1,0 +1,93 @@
+#!/usr/bin/env fish
+
+set CADDY_BIN /usr/local/bin/caddy
+set CADDY_CONFIG "/etc/caddy/caddy.yaml"
+set CADDY_PID_FILE "/var/run/caddy.pid"
+set CADDY_LOG_FILE "/var/log/caddy.log"
+
+function start_caddy
+    if test -f $CADDY_PID_FILE
+        echo "Caddy is already running."
+        return 1
+    end
+
+    echo "Starting Caddy..."
+    $CADDY_BIN run --config $CADDY_CONFIG --adapter yaml >$CADDY_LOG_FILE 2>&1 &
+    set -l pid (jobs -lp)
+    echo $pid >$CADDY_PID_FILE
+    echo "Caddy started with PID $pid"
+end
+
+function stop_caddy
+    if not test -f $CADDY_PID_FILE
+        echo "Caddy is not running."
+        return 1
+    end
+
+    set -l pid (cat $CADDY_PID_FILE)
+    echo "Stopping Caddy (PID $pid)..."
+    kill $pid
+    for i in (seq 10)
+        if not ps -p $pid >/dev/null
+            break
+        end
+        sleep 1
+    end
+    if ps -p $pid >/dev/null
+        echo "Caddy did not stop gracefully. Forcing stop..."
+        kill -9 $pid
+    end
+    rm -f $CADDY_PID_FILE
+    echo "Caddy stopped."
+end
+
+function restart_caddy
+    stop_caddy
+    start_caddy
+end
+
+function check_status
+    if test -f $CADDY_PID_FILE
+        set -l pid (cat $CADDY_PID_FILE)
+        if ps -p $pid >/dev/null
+            echo "Caddy is running (PID $pid)"
+        else
+            echo "Caddy is not running (stale PID file)"
+            rm -f $CADDY_PID_FILE
+        end
+    else
+        echo "Caddy is not running"
+    end
+end
+
+function reload_caddy
+    if not test -f $CADDY_PID_FILE
+        echo "Caddy is not running."
+        return 1
+    end
+
+    set -l pid (cat $CADDY_PID_FILE)
+    echo "Reloading Caddy configuration (PID $pid)..."
+    $CADDY_BIN reload --config $CADDY_CONFIG --adapter yaml
+    if test $status -eq 0
+        echo "Caddy configuration reloaded successfully."
+    else
+        echo "Failed to reload Caddy configuration."
+    end
+end
+
+switch $argv[1]
+    case start
+        start_caddy
+    case stop
+        stop_caddy
+    case restart
+        restart_caddy
+    case status
+        check_status
+    case reload
+        reload_caddy
+    case '*'
+        echo "Usage: $argv[0] {start|stop|restart|status|reload}"
+        exit 1
+end

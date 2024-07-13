@@ -14,10 +14,11 @@ INSERT INTO objects (
 	updated_time,
 	modified_time,
 	size,
+	type,
 	content_type,
 	folders,
 	origin_name,
-	type
+	origin_type
 ) VALUES (
 	:name,
 	:etag,
@@ -25,10 +26,11 @@ INSERT INTO objects (
 	:updated_time,
 	:modified_time,
 	:size,
+	:type,
 	:content_type,
 	:folders,
 	:origin_name,
-	:type
+	:origin_type
 );
 
 -- :name update_thumbnail_id :affected
@@ -44,6 +46,7 @@ SELECT
 	o.created_time,
 	o.updated_time,
 	o.modified_time,
+	o.type,
 	o.size,
 	o.content_type,
 	o.folders,
@@ -51,7 +54,7 @@ SELECT
 	o.origin_name,
 	o.origin_type,
 	o.versions,
-	o.type
+	o.thumbnail_id
 FROM
 	images AS i,
 	objects AS o
@@ -68,6 +71,7 @@ SELECT
 	o.created_time,
 	o.updated_time,
 	o.modified_time,
+	o.type,
 	o.size,
 	o.content_type,
 	o.folders,
@@ -75,7 +79,7 @@ SELECT
 	o.origin_name,
 	o.origin_type,
 	o.versions,
-	o.type
+	o.thumbnail_id
 FROM
 	images AS i,
 	objects AS o

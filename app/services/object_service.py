@@ -41,13 +41,20 @@ class ObjectService:
         self.bucket_name = MINIO_BUCKET
 
     def save_image(
-        self, name: str, file_path: Path, content_type: str | None = None
+        self,
+        name: str,
+        file_path: Path,
+        content_type: str | None = None,
+        origin_type: str = "user",
     ) -> int | None:
         if content_type is None:
             content_type = mimetypes.guess_type(file_path, strict=False)[0]
 
         # 保存图像文件到Minio并将元数据存储到数据库中
-        image_info = self._save_image(name, file_path, content_type)
+        image_info = self._save_image(
+            name, file_path, content_type=content_type, origin_type=origin_type
+        )
+        image_info = Box(image_info)
 
         # 测试图像是否为tif格式，如果是则转换为jpg格式，保存为缩略图
         if content_type != "image/tiff":
@@ -57,11 +64,15 @@ class ObjectService:
         jpg_path = tiff2jpg(file_path)
 
         # 保存缩略图到Minio并将元数据存储到数据库中
-        thumbnail_info = self._save_image(name, jpg_path, "image/jpeg")
+        jpg_name = Path(name).with_suffix(".jpg")
+        jpg_name = str(jpg_name)
+        thumbnail_info = self._save_image(
+            jpg_name, jpg_path, content_type="image/jpeg", origin_type="thumbnail"
+        )
 
         # 更新图像的缩略图ID
         thumbnail_info = Box(thumbnail_info)
-        thumbnail_info.id = thumbnail_info.object_id
+        thumbnail_info.id = image_info.object_id
         del thumbnail_info["object_id"]
         result = self.queries.update_thumbnail_id(**thumbnail_info)
 
@@ -78,7 +89,7 @@ class ObjectService:
         return image_info
 
     def _save_image(
-        self, name: str, file_path: Path, content_type: str = "image/jpeg"
+        self, name: str, file_path: Path, *, content_type: str, origin_type: str
     ) -> dict | None:
         """
         保存图像文件到Minio并将元数据存储到数据库中
@@ -115,7 +126,11 @@ class ObjectService:
 
             # 保存对象元数据到数据库
             object_id = self._save_object_metadata(
-                name, folders, origin_name, type="image"
+                name,
+                folders,
+                type="image",
+                origin_name=origin_name,
+                origin_type=origin_type,
             )
 
             # 保存图像元数据到数据库
@@ -129,7 +144,11 @@ class ObjectService:
             return None
 
     def save_pointcloud(
-        self, name: str, file_path: Path, content_type: str = "application/vnd.las"
+        self,
+        name: str,
+        file_path: Path,
+        content_type: str = "application/vnd.las",
+        origin_type: str = "user",
     ) -> Optional[int]:
         """
         保存点云文件到Minio并将元数据存储到数据库中
@@ -172,7 +191,11 @@ class ObjectService:
 
             # 保存对象元数据到数据库
             object_id = self._save_object_metadata(
-                name, folders, origin_name, type="pointcloud"
+                name,
+                folders,
+                type="pointcloud",
+                origin_name=origin_name,
+                origin_type=origin_type,
             )
 
             # 保存点云元数据到数据库
@@ -320,7 +343,9 @@ class ObjectService:
             logger.debug(f"获取到的图像数据: {image_data}")
 
             # 填充图像数据
-            self._populate_object(image_data, should_base64=should_base64)
+            self._populate_object(
+                image_data, should_base64=should_base64, should_thumbnail=True
+            )
 
             return image_data
         except Exception as e:
@@ -366,7 +391,7 @@ class ObjectService:
         """
 
         # 获取Minio对象的分享链接
-        self._populate_link(object_data, "share_link")
+        object_data["share_link"] = self._get_share_link(object_data)
 
         # 获取对象的Base64编码
         if should_base64:
@@ -378,14 +403,14 @@ class ObjectService:
             )
             object_data["base64_image"] = base64_image
 
-        if should_thumbnail and object_data.thumbnail_id is not None:
+        if should_thumbnail and object_data["thumbnail_id"] is not None:
             # 获取缩略图的分享链接
-            thumbnail_data = self.queries.get_image(id=object_data.thumbnail_id)
-            self._populate_link(thumbnail_data, "thumbnail_link")
+            thumbnail_data = self.queries.get_image(id=object_data["thumbnail_id"])
+            object_data["thumbnail_link"] = self._get_share_link(thumbnail_data)
 
-    def _populate_link(self, object_data: dict, key: str) -> None:
+    def _get_share_link(self, object_data: dict) -> None:
         """
-        填充对象数据的分享链接
+        获取Minio对象的分享链接
 
         :param object_data: 对象数据
         :return: None
@@ -395,11 +420,8 @@ class ObjectService:
             object_name = get_object_name(object_data["name"], object_data["folders"])
 
             # 获取Minio对象的分享链接
-            # share_link = self.minio_client.presigned_get_object(
-            #     self.bucket_name, object_name
-            # )
             share_link = furl(f"{SHARE_LINK_BASE_URL}/{MINIO_BUCKET}/{object_name}").url
-            object_data[key] = share_link
+            return share_link
         except Exception as e:
             logger.error(f"填充分享链接时发生错误: {e}")
             logger.error(traceback.format_exc())
@@ -563,7 +585,7 @@ class ObjectService:
             return False
 
     def _save_object_metadata(
-        self, name: str, folders: str, origin_name: str, type: str
+        self, name: str, folders: str, *, type: str, origin_name: str, origin_type: str
     ) -> int:
         """
         保存对象元数据到数据库
@@ -590,6 +612,7 @@ class ObjectService:
             content_type=object_stat.content_type,
             folders=folders,
             origin_name=origin_name,
+            origin_type=origin_type,
             type=type,
         )
 

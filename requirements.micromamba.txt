@@ -7,12 +7,10 @@ loguru
 numpy
 #open3d
 Pillow
-pillow-avif-plugin
 plumbum
-pugsql
 pymysql
-redis
 minio
+redis-py
 pydantic
 python-dotenv
 python-box[all]

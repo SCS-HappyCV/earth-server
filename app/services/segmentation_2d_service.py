@@ -116,9 +116,9 @@ class Segmentation2DService:
         micromamba[
             "run",
             "-n",
-            "openmmlab",
+            "zyb",
             "python",
-            "/root/autodl-tmp/openmmlab/tools/predict.py",
+            "/root/autodl-tmp/Zhaoyibei/2D_seg/DPA/predict.py",
             "--input_path",
             input_path,
             "--output_path",
@@ -126,7 +126,9 @@ class Segmentation2DService:
         ]()
 
         # 保存输出文件
-        image_info = self.object_service.save_image(result_origin_name, output_path)
+        image_info = self.object_service.save_image(
+            result_origin_name, output_path, origin_type="system"
+        )
 
         # 更新数据库
         self.queries.complete_2d_segmentation(

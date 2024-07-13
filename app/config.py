@@ -19,9 +19,7 @@ REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
 
 DB_URI = f"mysql+pymysql://{DATABASE_USER}:{DATABASE_PASSWORD}@{DATABASE_HOST}:{DATABASE_PORT}/{DATABASE_NAME}"
 
-PUBLIC_IP = os.getenv("PUBLIC_IP", default="localhost")
-
-MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", default=f"{PUBLIC_IP}:9000")
+MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", default="localhost:9000")
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", default="minioadmin")
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", default="minioadmin")
 MINIO_BUCKET = os.getenv("MINIO_BUCKET", default="ai-earth")
@@ -29,15 +27,17 @@ MINIO_BUCKET = os.getenv("MINIO_BUCKET", default="ai-earth")
 
 CRSF_SECRET = os.getenv("CSRF_SECRET")
 
+# 公网访问地址
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", default="http://localhost")
+
 SHARE_LINK_BASE_URL = os.getenv(
-    "SHARE_LINK_BASE_URL", default=f"http://{PUBLIC_IP}/file"
+    "SHARE_LINK_BASE_URL", default=f"{PUBLIC_BASE_URL}/file"
 )
-POTREE_BASE_URL = os.getenv("POTREE_BASE_URL", default=f"http://{PUBLIC_IP}/potree")
+POTREE_BASE_URL = os.getenv("POTREE_BASE_URL", default=f"{PUBLIC_BASE_URL}/potree")
 POTREE_BASE_DIR = os.getenv("POTREE_BASE_DIR", default="/srv/www/potree")
 POTREE_SERVER_ROOT = os.getenv("POTREE_SERVER_ROOT", default="/srv/www/potree")
 POTREE_CLOUD_FOLDER = os.getenv("POTREE_CLOUD_FOLDER", default="pointclouds")
 POTREE_VIEWER_FOLDER = os.getenv("POTREE_VIEWER_FOLDER", default="viewer")
-
 
 TMP_DIR = os.getenv("TMP_DIR", default="/tmp")
 

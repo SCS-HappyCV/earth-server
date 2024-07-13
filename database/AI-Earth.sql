@@ -3,32 +3,35 @@ CREATE TABLE `conversations` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
 	`messages` JSON,
 	`project_id` INT,
-	`is_deleted` BOOLEAN DEFAULT false,
 	PRIMARY KEY(`id`)
 ) COMMENT='对话信息';
+
 
 CREATE TABLE `objects` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
 	-- minio对象名
 	`name` VARCHAR(255) COMMENT 'minio对象名',
 	`etag` VARCHAR(255),
+	`created_time` DATETIME,
+	`updated_time` DATETIME DEFAULT NOW() ON UPDATE NOW(),
 	`modified_time` DATETIME,
-	`size` INT,
-	`versions` INT DEFAULT 1,
 	-- 文件的mime类型
 	`content_type` VARCHAR(255) COMMENT '文件的mime类型',
 	-- minio桶中保存的对象的目录路径
 	`folders` VARCHAR(255) COMMENT 'minio桶中保存的对象的目录路径',
 	-- 对象tags, https://min.io/docs/minio/linux/reference/minio-mc/mc-tag.html
 	`tags` JSON COMMENT '对象tags, https://min.io/docs/minio/linux/reference/minio-mc/mc-tag.html',
-	`is_deleted` BOOLEAN DEFAULT false,
+	`type` ENUM('image', 'pointcloud'),
 	-- 原始上传的名称
 	`origin_name` VARCHAR(255) COMMENT '原始上传的名称',
-	`type` ENUM('image', 'pointcloud'),
-	`origin_type` ENUM('user', 'system') DEFAULT 'user',
+	`origin_type` ENUM('user', 'system', 'thumbnail') DEFAULT 'user',
+	`size` INT,
 	`thumbnail_id` INT,
+	`versions` INT DEFAULT 1,
+	`is_deleted` BOOLEAN DEFAULT false,
 	PRIMARY KEY(`id`)
 );
+
 
 /* 项目 */
 CREATE TABLE `projects` (
@@ -36,16 +39,17 @@ CREATE TABLE `projects` (
 	`name` VARCHAR(255),
 	`created_time` DATETIME DEFAULT NOW(),
 	`updated_time` DATETIME DEFAULT NOW() ON UPDATE NOW(),
-	`is_deleted` BOOLEAN DEFAULT false,
+	`modified_time` DATETIME DEFAULT NOW(),
 	-- 遥感影像解译,地物分类提取,水环境污染监测,流域变化检测
-	`type` ENUM(
-		'2d_change_detection', '2d_detection', '2d_segmentation', '3d_segmentation'
-	) COMMENT '遥感影像解译,地物分类提取,水环境污染监测,流域变化检测',
+	`type` ENUM('2d_change_detection', '2d_detection', '2d_segmentation', '3d_segmentation', 'conversation') COMMENT '遥感影像解译,地物分类提取,水环境污染监测,流域变化检测',
 	-- 封面缩略图的id
 	`cover_image_id` INT COMMENT '封面缩略图的id',
-	`modified_time` DATETIME DEFAULT NOW(),
+	`is_deleted` BOOLEAN DEFAULT false,
+	-- 项目状态
+	`status` ENUM('waiting', 'running', 'completed') DEFAULT 'waiting' COMMENT '项目状态',
 	PRIMARY KEY(`id`)
 ) COMMENT='项目';
+
 
 CREATE TABLE `images` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
@@ -61,6 +65,7 @@ CREATE TABLE `images` (
 	PRIMARY KEY(`id`)
 );
 
+
 CREATE TABLE `pointclouds` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
 	`object_id` INT,
@@ -68,6 +73,7 @@ CREATE TABLE `pointclouds` (
 	`point_count` INT COMMENT '点云文件的点数量',
 	PRIMARY KEY(`id`)
 );
+
 
 CREATE TABLE `2d_change_detections` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
@@ -80,6 +86,7 @@ CREATE TABLE `2d_change_detections` (
 	PRIMARY KEY(`id`)
 );
 
+
 CREATE TABLE `3d_segmentations` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
 	`pointcloud_id` INT,
@@ -87,6 +94,7 @@ CREATE TABLE `3d_segmentations` (
 	`project_id` INT,
 	PRIMARY KEY(`id`)
 );
+
 
 CREATE TABLE `2d_segmentations` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
@@ -98,6 +106,7 @@ CREATE TABLE `2d_segmentations` (
 	PRIMARY KEY(`id`)
 );
 
+
 CREATE TABLE `2d_detections` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
 	`image_id` INT,
@@ -107,6 +116,7 @@ CREATE TABLE `2d_detections` (
 	PRIMARY KEY(`id`)
 );
 
+
 CREATE TABLE `conversation_images` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
 	`conversation_id` INT,
@@ -114,14 +124,12 @@ CREATE TABLE `conversation_images` (
 	PRIMARY KEY(`id`)
 );
 
+
 -- ALTER TABLE `images`
 -- ADD FOREIGN KEY(`object_id`) REFERENCES `objects`(`id`)
 -- ON UPDATE CASCADE ON DELETE CASCADE;
 -- ALTER TABLE `pointclouds`
 -- ADD FOREIGN KEY(`object_id`) REFERENCES `objects`(`id`)
--- ON UPDATE NO ACTION ON DELETE NO ACTION;
--- ALTER TABLE `conversations`
--- ADD FOREIGN KEY(`project_id`) REFERENCES `projects`(`id`)
 -- ON UPDATE NO ACTION ON DELETE NO ACTION;
 -- ALTER TABLE `2d_change_detections`
 -- ADD FOREIGN KEY(`project_id`) REFERENCES `projects`(`id`)
@@ -171,12 +179,15 @@ CREATE TABLE `conversation_images` (
 -- ALTER TABLE `projects`
 -- ADD FOREIGN KEY(`cover_image_id`) REFERENCES `images`(`id`)
 -- ON UPDATE NO ACTION ON DELETE NO ACTION;
--- ALTER TABLE `objects`
--- ADD FOREIGN KEY(`thumbnail_id`) REFERENCES `objects`(`id`)
--- ON UPDATE NO ACTION ON DELETE NO ACTION;
 -- ALTER TABLE `conversation_images`
 -- ADD FOREIGN KEY(`image_id`) REFERENCES `images`(`id`)
 -- ON UPDATE NO ACTION ON DELETE NO ACTION;
 -- ALTER TABLE `conversation_images`
 -- ADD FOREIGN KEY(`conversation_id`) REFERENCES `conversations`(`id`)
+-- ON UPDATE NO ACTION ON DELETE NO ACTION;
+-- ALTER TABLE `conversations`
+-- ADD FOREIGN KEY(`project_id`) REFERENCES `projects`(`id`)
+-- ON UPDATE NO ACTION ON DELETE NO ACTION;
+-- ALTER TABLE `objects`
+-- ADD FOREIGN KEY(`thumbnail_id`) REFERENCES `images`(`id`)
 -- ON UPDATE NO ACTION ON DELETE NO ACTION;

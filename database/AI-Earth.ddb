@@ -1,7 +1,7 @@
 {
   "author": "Unnamed",
   "title": "AI-Earth",
-  "date": "2024-07-07T08:12:53.441Z",
+  "date": "2024-07-13T13:19:31.905Z",
   "tables": [
     {
       "name": "conversations",
@@ -18,19 +18,22 @@
           "primary": true,
           "default": "",
           "check": "",
-          "id": 0
+          "id": 0,
+          "size": 255
         },
         {
           "name": "messages",
           "type": "JSON",
-          "comment": "",
-          "unique": false,
-          "increment": false,
-          "notNull": false,
-          "primary": false,
           "default": "",
           "check": "",
-          "id": 1
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "id": 1,
+          "size": 255,
+          "values": []
         },
         {
           "name": "project_id",
@@ -42,29 +45,13 @@
           "notNull": false,
           "increment": false,
           "comment": "",
-          "id": 2,
-          "size": "",
-          "values": []
-        },
-        {
-          "name": "is_deleted",
-          "type": "BOOLEAN",
-          "default": "false",
-          "check": "",
-          "primary": false,
-          "unique": false,
-          "notNull": false,
-          "increment": false,
-          "comment": "",
-          "id": 3,
-          "size": "",
-          "values": []
+          "id": 2
         }
       ],
       "indices": [],
       "id": 0,
-      "x": 79.02966297054832,
-      "y": 47.97884463485099
+      "x": 64.07734923468979,
+      "y": 14.837931847507093
     },
     {
       "name": "objects",
@@ -110,6 +97,34 @@
           "id": 2
         },
         {
+          "name": "created_time",
+          "type": "DATETIME",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "",
+          "check": "",
+          "id": 3,
+          "size": "",
+          "values": []
+        },
+        {
+          "name": "updated_time",
+          "type": "DATETIME",
+          "comment": "",
+          "unique": false,
+          "increment": false,
+          "notNull": false,
+          "primary": false,
+          "default": "NOW() ON UPDATE NOW()",
+          "check": "",
+          "id": 4,
+          "size": "",
+          "values": []
+        },
+        {
           "name": "modified_time",
           "type": "DATETIME",
           "comment": "",
@@ -119,31 +134,9 @@
           "primary": false,
           "default": "",
           "check": "",
-          "id": 3
-        },
-        {
-          "name": "size",
-          "type": "INT",
-          "comment": "",
-          "unique": false,
-          "increment": false,
-          "notNull": false,
-          "primary": false,
-          "default": "",
-          "check": "",
-          "id": 4
-        },
-        {
-          "name": "versions",
-          "type": "INT",
-          "comment": "",
-          "unique": false,
-          "increment": false,
-          "notNull": false,
-          "primary": false,
-          "default": "1",
-          "check": "",
-          "id": 5
+          "id": 5,
+          "size": "",
+          "values": []
         },
         {
           "name": "content_type",
@@ -186,9 +179,9 @@
           "size": ""
         },
         {
-          "name": "is_deleted",
-          "type": "BOOLEAN",
-          "default": "false",
+          "name": "type",
+          "type": "ENUM",
+          "default": "",
           "check": "",
           "primary": false,
           "unique": false,
@@ -197,7 +190,10 @@
           "comment": "",
           "id": 9,
           "size": "",
-          "values": []
+          "values": [
+            "image",
+            "pointcloud"
+          ]
         },
         {
           "name": "origin_name",
@@ -213,22 +209,6 @@
           "size": 255
         },
         {
-          "name": "type",
-          "type": "ENUM",
-          "default": "",
-          "check": "",
-          "primary": false,
-          "unique": false,
-          "notNull": false,
-          "increment": false,
-          "comment": "",
-          "id": 11,
-          "values": [
-            "image",
-            "pointcloud"
-          ]
-        },
-        {
           "name": "origin_type",
           "type": "ENUM",
           "default": "user",
@@ -238,11 +218,26 @@
           "notNull": false,
           "increment": false,
           "comment": "",
-          "id": 12,
+          "id": 11,
           "values": [
             "user",
-            "system"
+            "system",
+            "thumbnail"
           ]
+        },
+        {
+          "name": "size",
+          "type": "INT",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "id": 12,
+          "values": [],
+          "size": ""
         },
         {
           "name": "thumbnail_id",
@@ -255,18 +250,46 @@
           "increment": false,
           "comment": "",
           "id": 13
+        },
+        {
+          "name": "versions",
+          "type": "INT",
+          "default": "1",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "id": 14,
+          "size": "",
+          "values": []
+        },
+        {
+          "name": "is_deleted",
+          "type": "BOOLEAN",
+          "default": "false",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "id": 15,
+          "size": "",
+          "values": []
         }
       ],
       "indices": [],
       "id": 1,
-      "x": -304.68934988221474,
-      "y": 502.4049158632073
+      "x": -400.9472489570011,
+      "y": 355.32428276199494
     },
     {
       "id": 2,
       "name": "projects",
       "x": 443.6114837986904,
-      "y": 122.02712701705383,
+      "y": 84.31414417058909,
       "fields": [
         {
           "name": "id",
@@ -328,9 +351,9 @@
           "values": []
         },
         {
-          "name": "is_deleted",
-          "type": "BOOLEAN",
-          "default": "false",
+          "name": "modified_time",
+          "type": "DATETIME",
+          "default": "NOW()",
           "check": "",
           "primary": false,
           "unique": false,
@@ -357,7 +380,8 @@
             "2d_change_detection",
             "2d_detection",
             "2d_segmentation",
-            "3d_segmentation"
+            "3d_segmentation",
+            "conversation"
           ]
         },
         {
@@ -374,9 +398,9 @@
           "size": 255
         },
         {
-          "name": "modified_time",
-          "type": "DATETIME",
-          "default": "NOW()",
+          "name": "is_deleted",
+          "type": "BOOLEAN",
+          "default": "false",
           "check": "",
           "primary": false,
           "unique": false,
@@ -386,6 +410,23 @@
           "id": 7,
           "size": "",
           "values": []
+        },
+        {
+          "name": "status",
+          "type": "ENUM",
+          "default": "'waiting'",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "项目状态",
+          "id": 8,
+          "values": [
+            "waiting",
+            "running",
+            "completed"
+          ]
         }
       ],
       "comment": "项目",
@@ -396,8 +437,8 @@
     {
       "id": 3,
       "name": "images",
-      "x": 125.03280272851589,
-      "y": 429.51235061723105,
+      "x": 133.58449951909756,
+      "y": 460.2984590633247,
       "fields": [
         {
           "name": "id",
@@ -918,17 +959,6 @@
       "id": 1
     },
     {
-      "startTableId": 0,
-      "startFieldId": 2,
-      "endTableId": 2,
-      "endFieldId": 0,
-      "cardinality": "一对一",
-      "updateConstraint": "No action",
-      "deleteConstraint": "No action",
-      "name": "conversations_project_id_fk",
-      "id": 2
-    },
-    {
       "startTableId": 5,
       "startFieldId": 1,
       "endTableId": 2,
@@ -937,7 +967,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_detection_project_id_fk",
-      "id": 3
+      "id": 2
     },
     {
       "startTableId": 5,
@@ -948,7 +978,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_detection_image1_id_fk",
-      "id": 4
+      "id": 3
     },
     {
       "startTableId": 5,
@@ -959,7 +989,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_detection_result_image_id_fk",
-      "id": 5
+      "id": 4
     },
     {
       "startTableId": 5,
@@ -970,7 +1000,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_detection_image2_id_fk",
-      "id": 6
+      "id": 5
     },
     {
       "startTableId": 6,
@@ -981,7 +1011,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "3d_segmentation_pointcloud_id_fk",
-      "id": 7
+      "id": 6
     },
     {
       "startTableId": 6,
@@ -992,7 +1022,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "3d_segmentation_result_pointcloud_id_fk",
-      "id": 8
+      "id": 7
     },
     {
       "startTableId": 7,
@@ -1003,7 +1033,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_segmentation_image_id_fk",
-      "id": 9
+      "id": 8
     },
     {
       "startTableId": 7,
@@ -1014,7 +1044,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_segmentation_result_image_id_fk",
-      "id": 10
+      "id": 9
     },
     {
       "startTableId": 8,
@@ -1025,7 +1055,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_detections_image_id_fk",
-      "id": 11
+      "id": 10
     },
     {
       "startTableId": 8,
@@ -1036,7 +1066,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_detections_project_id_fk",
-      "id": 12
+      "id": 11
     },
     {
       "startTableId": 7,
@@ -1047,7 +1077,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_segmentations_project_id_fk",
-      "id": 13
+      "id": 12
     },
     {
       "startTableId": 6,
@@ -1058,7 +1088,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "3d_segmentations_project_id_fk",
-      "id": 14
+      "id": 13
     },
     {
       "startTableId": 7,
@@ -1069,7 +1099,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_segmentations_plot_image_id_fk",
-      "id": 15
+      "id": 14
     },
     {
       "startTableId": 8,
@@ -1080,7 +1110,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_detections_plot_image_id_fk",
-      "id": 16
+      "id": 15
     },
     {
       "startTableId": 5,
@@ -1091,7 +1121,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "2d_change_detections_plot_image_id_fk",
-      "id": 17
+      "id": 16
     },
     {
       "startTableId": 2,
@@ -1102,18 +1132,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "projects_cover_image_id_fk",
-      "id": 18
-    },
-    {
-      "startTableId": 1,
-      "startFieldId": 13,
-      "endTableId": 1,
-      "endFieldId": 0,
-      "cardinality": "一对一",
-      "updateConstraint": "No action",
-      "deleteConstraint": "No action",
-      "name": "objects_thumbnail_id_fk",
-      "id": 19
+      "id": 17
     },
     {
       "startTableId": 9,
@@ -1124,7 +1143,7 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "conversation_images_image_id_fk",
-      "id": 20
+      "id": 18
     },
     {
       "startTableId": 9,
@@ -1135,10 +1154,33 @@
       "updateConstraint": "No action",
       "deleteConstraint": "No action",
       "name": "conversation_images_conversation_id_fk",
+      "id": 19
+    },
+    {
+      "startTableId": 0,
+      "startFieldId": 2,
+      "endTableId": 2,
+      "endFieldId": 0,
+      "cardinality": "一对一",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "name": "conversations_project_id_fk",
+      "id": 20
+    },
+    {
+      "startTableId": 1,
+      "startFieldId": 13,
+      "endTableId": 3,
+      "endFieldId": 0,
+      "cardinality": "一对一",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "name": "objects_thumbnail_id_fk",
       "id": 21
     }
   ],
   "notes": [],
   "subjectAreas": [],
+  "database": "generic",
   "types": []
 }

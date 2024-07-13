@@ -3,7 +3,7 @@ apps:
     servers:
       example:
         listen:
-          - :80
+          - :6006
         routes:
           - match:
               - path:
@@ -22,7 +22,7 @@ apps:
                 strip_path_prefix: /file
               - handler: reverse_proxy
                 upstreams:
-                  - dial: 172.16.74.101:9000
+                  - dial: localhost:9000
           - match:
               - path:
                   - /api/*
