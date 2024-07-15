@@ -218,47 +218,23 @@ LIMIT :offset, :row_count;
 SELECT
 	i.*,
 	o.name,
-	o.type,
 	o.etag,
 	o.created_time,
 	o.updated_time,
 	o.modified_time,
-	o.size,
-	o.versions,
 	o.content_type,
 	o.folders,
 	o.tags,
 	o.origin_name,
 	o.origin_type,
-	o.thumbnail_id
-FROM images AS i, objects AS o
-WHERE
-	i.object_id = o.id
-	AND o.is_deleted = FALSE
-	AND o.origin_type IN :origin_types
-LIMIT :offset, :row_count;
-
--- :name get_images_by_ids :many
-SELECT
-	i.*,
-	o.name,
-	o.type,
-	o.etag,
-	o.created_time,
-	o.updated_time,
-	o.modified_time,
 	o.size,
-	o.versions,
-	o.content_type,
-	o.folders,
-	o.tags,
-	o.origin_name,
-	o.origin_type
+	o.thumbnail_id,
+	o.versions
 FROM images AS i, objects AS o
 WHERE
-	i.object_id = o.id
-	AND o.is_deleted = FALSE
-	AND i.id IN :ids;
+	(i.id IN :ids OR o.id IN :object_ids)
+	AND i.object_id = o.id
+	AND o.is_deleted = FALSE;
 
 -- :name get_objects :many
 SELECT
@@ -269,3 +245,11 @@ WHERE
 	is_deleted = FALSE
 	AND origin_type IN :origin_types
 LIMIT :offset, :row_count;
+
+-- :name count_objects :scalar
+SELECT COUNT(*)
+FROM objects
+WHERE
+	is_deleted = FALSE
+	AND type IN :types
+	AND origin_type IN :origin_types;

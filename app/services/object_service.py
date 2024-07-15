@@ -276,7 +276,7 @@ class ObjectService:
     def gets(
         self,
         type: str | None = None,
-        origin_types: tuple[str] = ("user", "system"),
+        origin_types: tuple[str] | None = None,
         offset: int | None = 0,
         row_count: int | None = 9999,
     ) -> BoxList | None:
@@ -287,6 +287,8 @@ class ObjectService:
         :return: 包含对象元数据的BoxList对象，如果获取失败则返回None
         """
         try:
+            origin_types = origin_types or ("user", "system")
+
             match type:
                 case "image":
                     objects_data = self.queries.get_images(
@@ -319,6 +321,39 @@ class ObjectService:
             logger.error(f"获取对象时发生错误: {e}")
             logger.error(traceback.format_exc())
             return None
+
+    def count(
+        self,
+        type: str | None = None,
+        types: list[str] | None = None,
+        origin_type: str | None = None,
+        origin_types: list[str] | None = None,
+    ) -> int:
+        """
+        获取对象数量
+
+        :param type: 对象类型
+        :return: 对象数量
+        """
+        try:
+            if origin_type:
+                origin_types = [origin_type]
+            elif not (origin_type or origin_types):
+                logger.warning("未提供对象来源类型")
+                origin_types = ["user", "system"]
+
+            if type:
+                types = [type]
+            elif not (type or types):
+                logger.warning("未提供对象类型")
+                types = ["image", "pointcloud"]
+
+            count = self.queries.count_objects(types=types, origin_types=origin_types)
+
+            return count
+        except Exception as e:
+            logger.error(f"获取对象数量时发生错误: {e}")
+            logger.error(traceback.format_exc())
 
     def get_image(
         self,
@@ -361,7 +396,15 @@ class ObjectService:
             logger.error(traceback.format_exc())
             return None
 
-    def get_images(self, ids: list[int], *, should_base64=False) -> BoxList | None:
+    def get_images(
+        self,
+        ids: list[int] | None = None,
+        object_ids: list[int] | None = None,
+        *,
+        should_base64=False,
+        should_thumbnail=True,
+        only_thumbnail=False,
+    ) -> BoxList | None:
         """
         获取多个图像元数据和分享链接
 
@@ -369,7 +412,10 @@ class ObjectService:
         :return: 包含图像元数据和分享链接的BoxList对象，如果获取失败则返回None
         """
         try:
-            images_data = self.queries.get_images_by_ids(ids=ids)
+            ids = ids or []
+            object_ids = object_ids or []
+
+            images_data = self.queries.get_images(ids=ids, object_ids=object_ids)
             if not images_data:
                 logger.warning(f"未找到ID为{ids}的图像")
                 return None
@@ -379,7 +425,12 @@ class ObjectService:
             # 获取Minio对象的分享链接
             for image_data in images_data:
                 # 填充图像数据
-                self._populate_object(image_data, should_base64=should_base64)
+                self._populate_object(
+                    image_data,
+                    should_base64=should_base64,
+                    should_thumbnail=should_thumbnail,
+                    only_thumbnail=only_thumbnail,
+                )
 
             logger.info(f"成功获取ID为{ids}的图像")
             return images_data
@@ -389,7 +440,12 @@ class ObjectService:
             return
 
     def _populate_object(
-        self, object_data: dict, *, should_base64=False, should_thumbnail=False
+        self,
+        object_data: dict,
+        *,
+        should_base64=False,
+        should_thumbnail=False,
+        only_thumbnail=False,
     ) -> None:
         """
         填充对象数据
@@ -397,26 +453,54 @@ class ObjectService:
         :param image_data: 对象数据
         :return: None
         """
+        # only_thumbnail 为 True 时，隐含 should_thumbnail 为 True
+        if only_thumbnail:
+            should_thumbnail = True
 
         # 获取Minio对象的分享链接
         object_data["share_link"] = self._get_share_link(object_data)
 
-        # 获取对象的Base64编码
-        if should_base64:
-            # 获取Minio对象名
-            object_name = get_object_name(object_data["name"], object_data["folders"])
-            # 获取Base64编码
-            base64_image = get_object_base64(
-                self.minio_client, self.bucket_name, object_name
-            )
-            object_data["base64_image"] = base64_image
-
-        if should_thumbnail and object_data["thumbnail_id"] is not None:
+        if should_thumbnail and object_data.get("thumbnail_id"):
             # 获取缩略图的分享链接
             thumbnail_data = self.queries.get_image(
                 id=object_data["thumbnail_id"], object_id=None
             )
             object_data["thumbnail_link"] = self._get_share_link(thumbnail_data)
+
+        # 获取对象和缩略图的Base64编码
+        if should_base64:
+            if should_thumbnail and object_data.get("thumbnail_id"):
+                base64_thumbnail = self._get_base64_image(thumbnail_data)
+                object_data["base64_thumbnail"] = base64_thumbnail
+
+            if only_thumbnail and object_data.get("thumbnail_id"):
+                # 如果只获取缩略图，而且缩略图存在，则不获取原图的Base64编码
+                return
+
+            base64_image = self._get_base64_image(object_data)
+            object_data["base64_image"] = base64_image
+
+    def _get_base64_image(self, object_data: dict) -> str:
+        """
+        获取Minio对象的Base64编码
+
+        :param object_data: 对象数据
+        :return: Base64编码
+        """
+        try:
+            logger.debug(f"获取Base64编码: {object_data}")
+
+            # 获取Minio对象名
+            object_name = get_object_name(object_data["name"], object_data["folders"])
+
+            # 获取Base64编码
+            base64_image = get_object_base64(
+                self.minio_client, self.bucket_name, object_name
+            )
+            return base64_image
+        except Exception as e:
+            logger.error(f"获取Base64编码时发生错误: {e}")
+            logger.error(traceback.format_exc())
 
     def _get_share_link(self, object_data: dict) -> None:
         """

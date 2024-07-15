@@ -79,18 +79,27 @@ class ConversationService:
         )
         image_ids = [image_id.image_id for image_id in BoxList(image_ids)]
         # 获取所有图片
-        images = self.object_service.get_images(image_ids, should_base64=True)
+        images = self.object_service.get_images(
+            ids=image_ids, should_base64=True, only_thumbnail=True
+        )
+
+        logger.debug(f"images: {[image.keys() for image in images]}")
 
         # 获取所有图片的 base64 编码
-        base64_images = [image.base64_image for image in images]
+        base64_images = [
+            image.get("base64_thumbnail") or image.get("base64_image")
+            for image in images
+        ]
         # 合并消息和图片
         messages = merge_messages_images(
             json.loads(conversation.messages), base64_images
         )
 
-        # 删除 base64_image 属性
+        # 删除 base64_ 开头的属性
         for image in images:
-            del image["base64_image"]
+            for key in list(image.keys()):
+                if key.startswith("base64_"):
+                    del image[key]
 
         # 删除 conversation 中的 messages 属性
         del conversation["messages"]

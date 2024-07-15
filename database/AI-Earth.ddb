@@ -1,7 +1,7 @@
 {
-  "author": "Unnamed",
+  "author": "Bit0r",
   "title": "AI-Earth",
-  "date": "2024-07-13T13:19:31.905Z",
+  "date": "2024-07-15T07:24:07.980Z",
   "tables": [
     {
       "name": "conversations",
@@ -41,8 +41,8 @@
           "default": "",
           "check": "",
           "primary": false,
-          "unique": false,
-          "notNull": false,
+          "unique": true,
+          "notNull": true,
           "increment": false,
           "comment": "",
           "id": 2
@@ -245,7 +245,7 @@
           "default": "",
           "check": "",
           "primary": false,
-          "unique": false,
+          "unique": true,
           "notNull": false,
           "increment": false,
           "comment": "",
@@ -458,8 +458,8 @@
           "default": "",
           "check": "",
           "primary": false,
-          "unique": false,
-          "notNull": false,
+          "unique": true,
+          "notNull": true,
           "increment": false,
           "comment": "",
           "id": 1
@@ -542,8 +542,8 @@
           "default": "",
           "check": "",
           "primary": false,
-          "unique": false,
-          "notNull": false,
+          "unique": true,
+          "notNull": true,
           "increment": false,
           "comment": "",
           "id": 1
@@ -590,8 +590,8 @@
           "default": "",
           "check": "",
           "primary": false,
-          "unique": false,
-          "notNull": false,
+          "unique": true,
+          "notNull": true,
           "increment": false,
           "comment": "",
           "id": 1
@@ -712,8 +712,8 @@
           "default": "",
           "check": "",
           "primary": false,
-          "unique": false,
-          "notNull": false,
+          "unique": true,
+          "notNull": true,
           "increment": false,
           "comment": "",
           "id": 3
@@ -772,8 +772,8 @@
           "default": "",
           "check": "",
           "primary": false,
-          "unique": false,
-          "notNull": false,
+          "unique": true,
+          "notNull": true,
           "increment": false,
           "comment": "",
           "id": 3
@@ -862,8 +862,8 @@
           "default": "",
           "check": "",
           "primary": false,
-          "unique": false,
-          "notNull": false,
+          "unique": true,
+          "notNull": true,
           "increment": false,
           "comment": "",
           "id": 3

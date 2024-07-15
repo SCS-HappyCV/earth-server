@@ -39,12 +39,18 @@ class ObjectController(Controller):
         ids: list[int] | None = None,
         object_id: int | None = None,
         type: str | None = None,
+        origin_type: str | None = None,
         *,
         should_base64: bool = False,
+        only_thumbnail: bool = False,
+        start: int = 0,
+        length: int = 9999,
     ) -> ResponseWrapper:
         if ids and type == "image":
             logger.info("Getting images")
-            object_info = object_service.get_images(ids, should_base64=should_base64)
+            object_info = object_service.get_images(
+                ids=ids, should_base64=should_base64, only_thumbnail=only_thumbnail
+            )
         elif id or object_id:
             match type:
                 case "image":
@@ -57,14 +63,29 @@ class ObjectController(Controller):
                 case None:
                     object_info = object_service.get(id=object_id)
         else:
-            object_info = object_service.gets(type=type)
+            origin_types = (origin_type,) if origin_type else None
+            object_info = object_service.gets(
+                type=type, origin_types=origin_types, offset=start, row_count=length
+            )
+            total_count = object_service.count(type=type, origin_types=origin_types)
 
         if object_info is None:
             return Response(
                 ResponseWrapper(code=2, message=f"object_info with id {id} not found"),
                 status_code=HTTP_404_NOT_FOUND,
             )
-        return ResponseWrapper(object_info)
+
+        if id or ids or object_id:
+            return ResponseWrapper(object_info)
+
+        return ResponseWrapper(
+            {
+                "total": total_count,
+                "start": start,
+                "length": length,
+                "data": object_info,
+            }
+        )
 
     @post(path="/", sync_to_thread=True)
     def create(

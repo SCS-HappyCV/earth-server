@@ -75,7 +75,7 @@ class ProjectService:
 
         for key in ["cover_image", "image", "plot_image", "image1", "image2"]:
             column_name = f"{key}_id"
-            if column_name not in project:
+            if not project.get(column_name):
                 continue
 
             image_info = self.object_service.get_image(id=project[column_name])

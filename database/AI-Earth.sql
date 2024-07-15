@@ -2,7 +2,7 @@
 CREATE TABLE `conversations` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
 	`messages` JSON,
-	`project_id` INT,
+	`project_id` INT NOT NULL UNIQUE,
 	PRIMARY KEY(`id`)
 ) COMMENT='对话信息';
 
@@ -26,7 +26,7 @@ CREATE TABLE `objects` (
 	`origin_name` VARCHAR(255) COMMENT '原始上传的名称',
 	`origin_type` ENUM('user', 'system', 'thumbnail') DEFAULT 'user',
 	`size` INT,
-	`thumbnail_id` INT,
+	`thumbnail_id` INT UNIQUE,
 	`versions` INT DEFAULT 1,
 	`is_deleted` BOOLEAN DEFAULT false,
 	PRIMARY KEY(`id`)
@@ -53,7 +53,7 @@ CREATE TABLE `projects` (
 
 CREATE TABLE `images` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
-	`object_id` INT,
+	`object_id` INT NOT NULL UNIQUE,
 	-- 图片的通道数量
 	`channel_count` INT DEFAULT 3 COMMENT '图片的通道数量',
 	-- 图片的高
@@ -68,7 +68,7 @@ CREATE TABLE `images` (
 
 CREATE TABLE `pointclouds` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
-	`object_id` INT,
+	`object_id` INT NOT NULL UNIQUE,
 	-- 点云文件的点数量
 	`point_count` INT COMMENT '点云文件的点数量',
 	PRIMARY KEY(`id`)
@@ -77,7 +77,7 @@ CREATE TABLE `pointclouds` (
 
 CREATE TABLE `2d_change_detections` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
-	`project_id` INT,
+	`project_id` INT NOT NULL UNIQUE,
 	`image1_id` INT,
 	`image2_id` INT,
 	`mask_image_id` INT,
@@ -91,7 +91,7 @@ CREATE TABLE `3d_segmentations` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
 	`pointcloud_id` INT,
 	`result_pointcloud_id` INT,
-	`project_id` INT,
+	`project_id` INT NOT NULL UNIQUE,
 	PRIMARY KEY(`id`)
 );
 
@@ -100,7 +100,7 @@ CREATE TABLE `2d_segmentations` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
 	`image_id` INT,
 	`mask_image_id` INT,
-	`project_id` INT,
+	`project_id` INT NOT NULL UNIQUE,
 	`plot_image_id` INT,
 	`result` JSON,
 	PRIMARY KEY(`id`)
@@ -111,7 +111,7 @@ CREATE TABLE `2d_detections` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
 	`image_id` INT,
 	`result` JSON,
-	`project_id` INT,
+	`project_id` INT NOT NULL UNIQUE,
 	`plot_image_id` INT,
 	PRIMARY KEY(`id`)
 );
