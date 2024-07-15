@@ -4,6 +4,7 @@ FROM projects
 WHERE
 	is_deleted = false
 	AND type IN :types
+	AND status IN :statuses
 LIMIT :offset, :row_count;
 
 -- :name get_project :one

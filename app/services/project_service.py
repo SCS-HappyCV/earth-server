@@ -1,16 +1,23 @@
 from box import Box, BoxList
 from loguru import logger
+from minio import Minio
 from pugsql.compiler import Module
 
 from app.utils.table_funcs import delete_fields
 
+from .object_service import ObjectService
+
 
 class ProjectService:
-    def __init__(self, queries: Module):
+    def __init__(self, queries: Module, minio_client: Minio):
         self.queries = queries
+        self.object_service = ObjectService(queries, minio_client)
 
     def create(self, type, name, cover_image_id=None, **kwargs):
         logger.debug(f"Creating project of type {type}")
+        if not name:
+            name = "未命名项目"
+
         return self.queries.create_project(
             name=name, type=type, cover_image_id=cover_image_id
         )
@@ -18,7 +25,7 @@ class ProjectService:
     def get(self, id):
         return self.queries.get_project(id=id)
 
-    def list(
+    def gets(
         self,
         types: tuple[str] = (
             "2d_segmentation",
@@ -26,13 +33,26 @@ class ProjectService:
             "2d_change_detection",
             "3d_segmentation",
         ),
+        statuses: tuple[str] = ("waiting", "running", "completed"),
         row_count=9999,
         offset=0,
     ):
         results = self.queries.get_projects(
-            row_count=row_count, offset=offset, types=types
+            row_count=row_count, offset=offset, types=types, statuses=statuses
         )
-        results = delete_fields(["is_deleted"], rows=results)
+        results = BoxList(results)
+
+        if results:
+            logger.debug(f"Found projects: {results}")
+        else:
+            logger.debug("No projects found")
+
+        for result in results:
+            if not result.cover_image_id:
+                continue
+            image_info = self.object_service.get_image(id=result.cover_image_id)
+            result.cover_image_link = image_info.share_link
+
         return results
 
     def update(self, id, name=None, cover_image_id=None):
@@ -49,6 +69,21 @@ class ProjectService:
             )
 
         return True
+
+    def _populate_project(self, project: dict):
+        project = Box(project)
+
+        for key in ["cover_image", "image", "plot_image", "image1", "image2"]:
+            column_name = f"{key}_id"
+            if column_name not in project:
+                continue
+
+            image_info = self.object_service.get_image(id=project[column_name])
+            project[f"{key}_link"] = image_info.share_link
+            if "thumbnail_link" in image_info:
+                project[f"{key}_thumbnail_link"] = image_info.thumbnail_link
+
+        return project
 
     def delete(self, id):
         return self.queries.delete_project(id=id)

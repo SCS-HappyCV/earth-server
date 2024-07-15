@@ -1,6 +1,7 @@
 import json
 
 from box import Box, BoxList
+from minio import Minio
 from pugsql.compiler import Module
 from redis import Redis
 
@@ -10,12 +11,12 @@ from .project_service import ProjectService
 
 
 class Detection2DService:
-    def __init__(self, queries: Module, redis_client: Redis):
+    def __init__(self, queries: Module, minio_client: Minio, redis_client: Redis):
         self.queries = queries
-        self.project_service = ProjectService(queries)
+        self.project_service = ProjectService(queries, minio_client)
         self.redis_client = redis_client
 
-    def create(self, image_id, project_id=None, project_name=None, **kwargs):
+    def create(self, image_id, project_id=None, name=None, **kwargs):
         with self.queries.transaction() as tx:
             if project_id:
                 project = self.project_service.get(project_id)
@@ -26,7 +27,7 @@ class Detection2DService:
                     raise ValueError(msg)
             else:
                 project_id = self.project_service.create(
-                    type="2d_detection", name=project_name, cover_image_id=image_id
+                    type="2d_detection", name=name, cover_image_id=image_id
                 )
 
             last_id = self.queries.create_2d_detection(

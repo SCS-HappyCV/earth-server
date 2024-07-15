@@ -1,17 +1,15 @@
 import json
 import mimetypes
 from pathlib import Path
-import threading
 from typing import Any
 
-from box import Box
+from dotenv import load_dotenv
 from litestar import Litestar
 from litestar.config.compression import CompressionConfig
 from litestar.config.cors import CORSConfig
 from litestar.config.csrf import CSRFConfig
 from litestar.middleware.session.server_side import ServerSideSessionConfig
 from litestar.stores.redis import RedisStore
-from loguru import logger
 from minio import Minio
 import pugsql
 from redis import Redis
@@ -33,13 +31,13 @@ from .routes import (
     ProjectController,
     ProjectTaskController,
 )
-from .tasks import background_tasks
+from .tasks import BackgroudTasksService
+
+load_dotenv(override=True)
 
 cors_config = CORSConfig()
 csrf_config = CSRFConfig(CRSF_SECRET)
 compression_config = CompressionConfig("brotli")
-
-stop_event = threading.Event()
 
 
 def retrieve_user_handler(session: dict[str, Any]):
@@ -76,32 +74,12 @@ def add_mime_types(app: Litestar):
     # 添加 avif MIME 类型
     mimetypes.add_type("image/avif", ".avif")
 
-
-def start_tasks(app: Litestar):
-    redis_client = Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
-
-    queris = pugsql.module(QUERIES_PATH)
-    queris.connect(DB_URI)
-
-    minio_client = Minio(
-        MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, secure=False
-    )
-
-    kwargs = {
-        "stop_event": stop_event,
-        "redis_client": redis_client,
-        "queries": queris,
-        "minio_client": minio_client,
-    }
-    threading.Thread(target=background_tasks, kwargs=kwargs).start()
+    # 添加 las MIME 类型
+    mimetypes.add_type("application/vnd.las", ".las")
 
 
-route_handlers = [
-    ObjectController,
-    ProjectController,
-    ProjectTaskController,
-    ConversationController,
-]
+backgroud_tasks_service = BackgroudTasksService()
+route_handlers = [ObjectController, ProjectTaskController, ConversationController]
 
 app = Litestar(
     route_handlers=route_handlers,
@@ -110,6 +88,6 @@ app = Litestar(
     cors_config=cors_config,
     # csrf_config=csrf_config,
     compression_config=compression_config,
-    on_startup=[get_db_connection, add_mime_types, start_tasks],
-    on_shutdown=[close_db_connection],
+    on_startup=[get_db_connection, add_mime_types, backgroud_tasks_service.start],
+    on_shutdown=[close_db_connection, backgroud_tasks_service.stop],
 )

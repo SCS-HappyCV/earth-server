@@ -1,5 +1,7 @@
 from box import Box, BoxList
+from minio import Minio
 from pugsql.compiler import Module
+from redis import Redis
 
 from app.utils.table_funcs import delete_fields
 
@@ -7,9 +9,10 @@ from .project_service import ProjectService
 
 
 class Segmentation3DService:
-    def __init__(self, queries: Module):
+    def __init__(self, queries: Module, minio_client: Minio, redis_client: Redis):
         self.queries = queries
-        self.project_service = ProjectService(queries)
+        self.project_service = ProjectService(queries, minio_client)
+        self.redis_client = redis_client
 
     def create(self, pointcloud_id, project_id=None, project_name=None, **kwargs):
         with self.queries.transaction() as tx:

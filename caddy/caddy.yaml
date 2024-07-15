@@ -1,3 +1,7 @@
+logging:
+  logs:
+    default:
+      level: DEBUG
 apps:
   http:
     servers:
@@ -12,7 +16,8 @@ apps:
               - handler: rewrite
                 strip_path_prefix: /potree
               - handler: file_server
-                root: /srv/www/potree
+                # root: /srv/www/potree
+                root: /root/autodl-tmp/potree
           - match:
               - path:
                   - /file/*
@@ -43,4 +48,5 @@ apps:
                       - Origin, Content-Type, Accept
           - handle:
               - handler: file_server
-                root: /srv/www/earth
+                # root: /srv/www/earth
+                root: /root/autodl-tmp/earth

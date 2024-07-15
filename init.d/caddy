@@ -1,9 +1,9 @@
 #!/usr/bin/env fish
 
 set CADDY_BIN /usr/local/bin/caddy
-set CADDY_CONFIG "/etc/caddy/caddy.yaml"
-set CADDY_PID_FILE "/var/run/caddy.pid"
-set CADDY_LOG_FILE "/var/log/caddy.log"
+set CADDY_CONFIG /etc/caddy/caddy.yaml
+set CADDY_PID_FILE /var/run/caddy.pid
+set CADDY_LOG_FILE /var/log/caddy.log
 
 function start_caddy
     if test -f $CADDY_PID_FILE

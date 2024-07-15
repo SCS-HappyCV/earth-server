@@ -59,8 +59,8 @@ FROM
 	images AS i,
 	objects AS o
 WHERE
-	i.object_id = o.id
-	AND i.id = :id
+	(i.id = :id OR o.id = :object_id)
+	AND i.object_id = o.id
 	AND o.is_deleted = FALSE;
 
 -- :name get_image_by_object_id :one
@@ -108,8 +108,8 @@ FROM
 	pointclouds AS p,
 	objects AS o
 WHERE
-	p.object_id = o.id
-	AND p.id = :id
+	(p.id = :id OR o.id = :object_id)
+	AND p.object_id = o.id
 	AND o.is_deleted = FALSE;
 
 -- :name get_pointcloud_by_object_id :one

@@ -91,19 +91,3 @@ def tiff2jpg(
 
     else:
         return str(output_path)
-
-
-# 日志配置
-logger.add("tiff_to_png.log", format="{time} {level} {message}", level="DEBUG")
-
-# 示例调用
-if __name__ == "__main__":
-    input_tiff = (
-        "/data/openmmlab_data/Gid/gid_row/15image/GF2_PMS2__L1A0001471436-MSS2.tif"
-    )
-    output_jpg = "/data/tmp/a.jpg"
-    try:
-        output_file_path = tiff_to_jpg(input_tiff, output_jpg)
-        logger.info(f"转换成功，输出文件路径: {output_file_path}")
-    except Exception as e:
-        logger.error(e)

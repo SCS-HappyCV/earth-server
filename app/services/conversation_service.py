@@ -13,9 +13,8 @@ from .project_service import ProjectService
 class ConversationService:
     def __init__(self, queries: Module, minio_client):
         self.queries = queries
-        self.project_service = ProjectService(queries)
+        self.project_service = ProjectService(queries, minio_client)
         self.object_service = ObjectService(queries, minio_client)
-        self.project_service = ProjectService(queries)
 
     def create(self, name, image_ids: list, messages: list, **kwargs):
         with self.queries.transaction() as tx:

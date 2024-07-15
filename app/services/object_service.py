@@ -19,11 +19,12 @@ from pugsql.compiler import Module
 
 from app.config import (
     MINIO_BUCKET,
-    POTREE_BASE_DIR,
     POTREE_BASE_URL,
     POTREE_CLOUD_FOLDER,
+    POTREE_SERVER_ROOT,
     POTREE_VIEWER_FOLDER,
     SHARE_LINK_BASE_URL,
+    TMPDIR,
 )
 from app.utils.image_funcs import get_metadata, tiff2jpg
 from app.utils.object_funcs import (
@@ -46,7 +47,7 @@ class ObjectService:
         file_path: Path,
         content_type: str | None = None,
         origin_type: str = "user",
-    ) -> int | None:
+    ):
         if content_type is None:
             content_type = mimetypes.guess_type(file_path, strict=False)[0]
 
@@ -256,8 +257,10 @@ class ObjectService:
                 logger.warning(f"未找到ID为{id}的对象")
                 return None
 
+            object_data = Box(object_data)
+
             # 从Minio下载文件
-            temp_file_path = Path(f"/tmp/{object_data.name}")
+            temp_file_path = Path(f"{TMPDIR}/{object_data.name}")
             self.minio_client.fget_object(
                 self.bucket_name, object_data.folders, str(temp_file_path)
             )
@@ -318,7 +321,12 @@ class ObjectService:
             return None
 
     def get_image(
-        self, id: int = None, object_id=None, *, should_base64=False
+        self,
+        id: int = None,
+        object_id=None,
+        *,
+        should_base64=False,
+        should_thumbnail=True,
     ) -> Optional[Box]:
         """
         获取图像元数据和分享链接
@@ -327,10 +335,8 @@ class ObjectService:
         :return: 包含图像元数据和分享链接的Box对象，如果获取失败则返回None
         """
         try:
-            if id:
-                image_data = self.queries.get_image(id=id)
-            elif object_id:
-                image_data = self.queries.get_image_by_object_id(object_id=object_id)
+            if id or object_id:
+                image_data = self.queries.get_image(id=id, object_id=object_id)
             else:
                 logger.warning("未提供ID或对象ID")
                 return None
@@ -344,7 +350,9 @@ class ObjectService:
 
             # 填充图像数据
             self._populate_object(
-                image_data, should_base64=should_base64, should_thumbnail=True
+                image_data,
+                should_base64=should_base64,
+                should_thumbnail=should_thumbnail,
             )
 
             return image_data
@@ -405,7 +413,9 @@ class ObjectService:
 
         if should_thumbnail and object_data["thumbnail_id"] is not None:
             # 获取缩略图的分享链接
-            thumbnail_data = self.queries.get_image(id=object_data["thumbnail_id"])
+            thumbnail_data = self.queries.get_image(
+                id=object_data["thumbnail_id"], object_id=None
+            )
             object_data["thumbnail_link"] = self._get_share_link(thumbnail_data)
 
     def _get_share_link(self, object_data: dict) -> None:
@@ -416,6 +426,8 @@ class ObjectService:
         :return: None
         """
         try:
+            logger.debug(f"获取分享链接: {object_data}")
+
             # 获取Minio对象名
             object_name = get_object_name(object_data["name"], object_data["folders"])
 
@@ -423,20 +435,20 @@ class ObjectService:
             share_link = furl(f"{SHARE_LINK_BASE_URL}/{MINIO_BUCKET}/{object_name}").url
             return share_link
         except Exception as e:
-            logger.error(f"填充分享链接时发生错误: {e}")
+            logger.error(f"获取分享链接时发生错误: {e}")
             logger.error(traceback.format_exc())
 
-    def _populate_potree(self, object_data: dict, *, is_classified: bool) -> None:
+    def _populate_potree(self, object_data: dict, *, is_classified: bool):
         """
         填充对象数据的Potree分享链接
 
         :param object_data: 对象数据
-        :return: None
+        :return: 填充后的对象数据
         """
         try:
             # 利用etag生成唯一的临时文件名
             etag = object_data["etag"]
-            tmp_file_path = f"/tmp/{etag}.las"
+            tmp_file_path = f"{TMPDIR}/{etag}.las"
 
             # 获取Potree分享链接
             potree_link = furl(
@@ -445,26 +457,29 @@ class ObjectService:
 
             # 检测生成文件是否已经存在
             potree_html_path = (
-                Path(POTREE_BASE_DIR) / POTREE_VIEWER_FOLDER / f"{etag}.html"
+                Path(POTREE_SERVER_ROOT) / POTREE_VIEWER_FOLDER / f"{etag}.html"
             )
             if potree_html_path.is_file():
                 logger.info(f"Potree文件已存在: {tmp_file_path}")
                 object_data["potree_link"] = potree_link
-                return
+                return object_data
 
-            # 获取Minio对象名
+            # 获取 Minio 对象名
             object_name = get_object_name(object_data["name"], object_data["folders"])
 
-            # 从Minio下载文件
+            # 从 Minio 下载文件
             self.minio_client.fget_object(self.bucket_name, object_name, tmp_file_path)
 
-            # 运行PotreePublisher
+            # 运行 PotreePublisher
             is_classified = "--classified" if is_classified else "--no-classified"
-            PotreePublisher[is_classified, tmp_file_path]()
+            PotreePublisher[
+                "--potree-server-root", POTREE_SERVER_ROOT, is_classified, tmp_file_path
+            ]()
 
             # 填充对象数据
             object_data["potree_link"] = potree_link
 
+            return object_data
         except Exception as e:
             logger.error(f"填充Potree分享链接时发生错误: {e}")
             logger.error(traceback.format_exc())
@@ -489,11 +504,9 @@ class ObjectService:
         :return: 包含点云元数据和分享链接的Box对象，如果获取失败则返回None
         """
         try:
-            if id:
-                pointcloud_data = self.queries.get_pointcloud(id=id)
-            elif object_id:
-                pointcloud_data = self.queries.get_pointcloud_by_object_id(
-                    object_id=object_id
+            if id or object_id:
+                pointcloud_data = self.queries.get_pointcloud(
+                    id=id, object_id=object_id
                 )
             else:
                 logger.warning("未提供ID或对象ID")
@@ -528,7 +541,7 @@ class ObjectService:
         :return: 删除是否成功
         """
         try:
-            image_data = self.queries.get_image(id=id)
+            image_data = self.queries.get_image(id=id, object_id=None)
             if not image_data:
                 logger.warning(f"未找到ID为{id}的图像")
                 return False

@@ -1,0 +1,34 @@
+#!/usr/bin/fish
+
+function start_backend
+    echo "Starting backend"
+    service minio start
+    service redis-server start
+    service mysql start
+    service caddy start
+end
+
+function stop_backend
+    echo "Stopping backend"
+    service caddy stop
+    service mysql stop
+    service redis-server stop
+    service minio stop
+end
+
+function restart_backend
+    stop_backend
+    start_backend
+end
+
+switch $argv[1]
+    case start
+        start_backend
+    case stop
+        stop_backend
+    case restart
+        restart_backend
+    case *
+        echo "Usage: $argv[1] {start|stop|restart}"
+        exit 1
+end
