@@ -13,13 +13,13 @@ class ProjectService:
         self.queries = queries
         self.object_service = ObjectService(queries, minio_client)
 
-    def create(self, type, name, cover_image_id=None, **kwargs):
+    def create(self, type, name, cover_image_id=None, status="waiting", **kwargs):
         logger.debug(f"Creating project of type {type}")
         if not name:
             name = "未命名项目"
 
         return self.queries.create_project(
-            name=name, type=type, cover_image_id=cover_image_id
+            name=name, type=type, cover_image_id=cover_image_id, status=status
         )
 
     def get(self, id):
@@ -73,7 +73,14 @@ class ProjectService:
     def _populate_project(self, project: dict):
         project = Box(project)
 
-        for key in ["cover_image", "image", "plot_image", "image1", "image2"]:
+        for key in [
+            "cover_image",
+            "image",
+            "plot_image",
+            "image1",
+            "image2",
+            "mask_svg",
+        ]:
             column_name = f"{key}_id"
             if not project.get(column_name):
                 continue

@@ -35,8 +35,8 @@ INSERT INTO objects (
 
 -- :name update_thumbnail_id :affected
 UPDATE objects
-SET thumbnail_id = :image_id
-WHERE id = :id;
+SET thumbnail_id = :thumbnail_image_id
+WHERE id = :object_id;
 
 -- :name get_image :one
 SELECT
@@ -63,9 +63,9 @@ WHERE
 	AND i.object_id = o.id
 	AND o.is_deleted = FALSE;
 
--- :name get_image_by_object_id :one
+-- :name get_pointcloud :one
 SELECT
-	i.*,
+	p.*,
 	o.name,
 	o.etag,
 	o.created_time,
@@ -80,30 +80,6 @@ SELECT
 	o.origin_type,
 	o.versions,
 	o.thumbnail_id
-FROM
-	images AS i,
-	objects AS o
-WHERE
-	i.object_id = o.id
-	AND i.object_id = :object_id
-	AND o.is_deleted = FALSE;
-
--- :name get_pointcloud :one
-SELECT
-	p.*,
-	o.name,
-	o.etag,
-	o.created_time,
-	o.updated_time,
-	o.modified_time,
-	o.size,
-	o.content_type,
-	o.folders,
-	o.tags,
-	o.origin_name,
-	o.origin_type,
-	o.versions,
-	o.type
 FROM
 	pointclouds AS p,
 	objects AS o
@@ -191,29 +167,6 @@ WHERE
 	id = :id
 	AND is_deleted = FALSE;
 
--- :name get_pointclouds :many
-SELECT
-	p.*,
-	o.type,
-	o.name,
-	o.etag,
-	o.created_time,
-	o.updated_time,
-	o.modified_time,
-	o.size,
-	o.versions,
-	o.content_type,
-	o.folders,
-	o.tags,
-	o.origin_name,
-	o.origin_type
-FROM pointclouds AS p, objects AS o
-WHERE
-	p.object_id = o.id
-	AND o.is_deleted = FALSE
-	AND o.origin_type IN :origin_types
-LIMIT :offset, :row_count;
-
 -- :name get_images :many
 SELECT
 	i.*,
@@ -236,7 +189,57 @@ WHERE
 	AND i.object_id = o.id
 	AND o.is_deleted = FALSE;
 
--- :name get_objects :many
+-- :name get_all_images :many
+SELECT
+	i.*,
+	o.name,
+	o.etag,
+	o.created_time,
+	o.updated_time,
+	o.modified_time,
+	o.content_type,
+	o.folders,
+	o.tags,
+	o.type,
+	o.origin_name,
+	o.origin_type,
+	o.size,
+	o.thumbnail_id,
+	o.versions,
+	o.is_deleted
+FROM images AS i, objects AS o
+WHERE
+	i.object_id = o.id
+	AND o.is_deleted = FALSE
+	AND o.origin_type IN :origin_types
+LIMIT :offset, :row_count;
+
+-- :name get_all_pointclouds :many
+SELECT
+	p.*,
+	name,
+	etag,
+	created_time,
+	updated_time,
+	modified_time,
+	content_type,
+	folders,
+	tags,
+	type,
+	origin_name,
+	origin_type,
+	size,
+	thumbnail_id,
+	versions,
+	is_deleted
+FROM pointclouds AS p, objects AS o
+WHERE
+	p.object_id = o.id
+	AND o.is_deleted = FALSE
+	AND o.origin_type IN :origin_types
+LIMIT :offset, :row_count;
+
+-- :name get_all_objects :many
 SELECT
 	*,
 	id AS object_id

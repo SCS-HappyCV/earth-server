@@ -44,29 +44,6 @@ def retrieve_user_handler(session: dict[str, Any]):
     return {"user_id": user_id} if (user_id := session.get("user_id")) else None
 
 
-def get_db_connection(app: Litestar):
-    queries_path = Path(QUERIES_PATH).expanduser().resolve()
-    queries = pugsql.module(queries_path)
-    queries.connect(DB_URI)
-
-    minio_clent = Minio(
-        MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, secure=False
-    )
-    redis_client = Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
-
-    app.state.queries = queries
-    app.state.minio_client = minio_clent
-    app.state.redis_client = redis_client
-
-
-def close_db_connection(app: Litestar):
-    queries: pugsql.compiler.Module = app.state.queries
-    queries.disconnect()
-
-    redis_client: Redis = app.state.redis_client
-    redis_client.close()
-
-
 def add_mime_types(app: Litestar):
     # 添加 webp MIME 类型
     mimetypes.add_type("image/webp", ".webp")
@@ -88,6 +65,6 @@ app = Litestar(
     cors_config=cors_config,
     # csrf_config=csrf_config,
     compression_config=compression_config,
-    on_startup=[get_db_connection, add_mime_types, backgroud_tasks_service.start],
-    on_shutdown=[close_db_connection, backgroud_tasks_service.stop],
+    on_startup=[add_mime_types, backgroud_tasks_service.start],
+    on_shutdown=[backgroud_tasks_service.stop],
 )

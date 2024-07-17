@@ -20,7 +20,10 @@ class ConversationService:
         with self.queries.transaction() as tx:
             # 创建project
             project_id = self.project_service.create(
-                name=name, type="conversation", cover_image_id=image_ids[0]
+                name=name,
+                type="conversation",
+                cover_image_id=image_ids[0],
+                status="completed",
             )
 
             if not project_id:
@@ -133,12 +136,8 @@ class ConversationService:
         return conversation
 
     def delete(self, id=None, project_id=None):
-        if id:
-            return self.queries.delete_2d_detection(id=id)
-        elif project_id:
-            return self.queries.delete_2d_detections_by_project_id(
-                project_id=project_id
-            )
+        if id or project_id:
+            return self.queries.delete_2d_detection(id=id, project_id=project_id)
         else:
             msg = "Either detection_id or project_id must be provided"
             raise ValueError(msg)

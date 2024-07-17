@@ -1,6 +1,9 @@
 fire
 furl
 laspy
+einops
+opencv
+svgwrite
 litestar[full]
 loguru
 #matplotlib

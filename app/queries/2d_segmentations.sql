@@ -1,26 +1,12 @@
--- :name get_2d_segmentation_by_project_id :one
-SELECT
-	2d_seg.*,
-	p.name,
-	p.created_time,
-	p.updated_time,
-	p.cover_image_id,
-	p.modified_time,
-	p.status
-FROM 2d_segmentations AS 2d_seg, projects AS p
-WHERE
-	2d_seg.project_id = :project_id
-	AND 2d_seg.project_id = p.id
-	AND p.is_deleted = false;
-
 -- :name get_2d_segmentation :one
 SELECT
 	2d_seg.*,
 	p.name,
 	p.created_time,
 	p.updated_time,
-	p.cover_image_id,
 	p.modified_time,
+	p.type,
+	p.cover_image_id,
 	p.status
 FROM 2d_segmentations AS 2d_seg, projects AS p
 WHERE
@@ -58,6 +44,7 @@ UPDATE 2d_segmentations, projects
 SET
 	2d_segmentations.plot_image_id = :plot_image_id,
 	2d_segmentations.mask_image_id = :mask_image_id,
+	2d_segmentations.mask_svg_id = :mask_svg_id,
 	projects.modified_time = NOW(),
 	projects.status = 'completed'
 WHERE

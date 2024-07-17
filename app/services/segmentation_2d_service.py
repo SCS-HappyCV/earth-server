@@ -10,7 +10,7 @@ from plumbum.cmd import micromamba
 from pugsql.compiler import Module
 from redis import Redis
 
-from app.config import TASK_QUEUE
+from app.config import SEGMENTATION_2D_BGR, TASK_QUEUE
 from app.utils.table_funcs import delete_fields
 from app.utils.tasks_funcs import push_task
 
@@ -147,9 +147,15 @@ class Segmentation2DService:
         ]()
 
         # 保存输出文件
-        image_info = self.object_service.save_image(
-            result_origin_name, output_path, origin_type="system"
+        results = self.object_service.save_image(
+            result_origin_name,
+            output_path,
+            origin_type="system",
+            thumbnail_format="png",
+            mask_colors_map=SEGMENTATION_2D_BGR,
+            mask_color_mode="bgr",
         )
+        results = Box(results)
 
         # 保存掩码文件
         # mask_info = self.object_service.save_image(
@@ -157,11 +163,14 @@ class Segmentation2DService:
         # )
 
         # 更新数据库
+        image_info = results.image_info
+        mask_svg_info = results.mask_svg_info
         self.queries.complete_2d_segmentation(
             id=id,
             project_id=project_id,
             plot_image_id=image_info.image_id,
             mask_image_id=None,
+            mask_svg_id=mask_svg_info.image_id,
         )
 
         # 删除临时文件

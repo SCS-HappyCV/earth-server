@@ -42,3 +42,32 @@ TMPDIR = os.getenv("TMPDIR", default="/tmp")
 
 # 任务队列
 TASK_QUEUE = os.getenv("TASK_QUEUE", default="tasks")
+
+# 2d分割颜色映射
+SEGMENTATION_2D_BGR = {
+    "industrial area": (200, 0, 0),
+    "paddy field": (0, 200, 0),
+    "irrigated field": (150, 250, 0),
+    "dry cropland": (150, 200, 150),
+    "garden land": (200, 0, 200),
+    "arbor forest": (150, 0, 250),
+    "shrub forest": (150, 150, 250),
+    "park": (200, 150, 200),
+    "natural meadow": (250, 200, 0),
+    "artificial meadow": (200, 200, 0),
+    "river": (0, 0, 200),
+    "urban residential": (250, 0, 150),
+    "lake": (0, 150, 200),
+    "pond": (0, 200, 250),
+    "fish pond": (150, 200, 250),
+    "snow": (250, 250, 250),
+    "bareland": (200, 200, 200),
+    "rural residential": (200, 150, 150),
+    "stadium": (250, 200, 150),
+    "square": (150, 150, 0),
+    "road": (250, 150, 150),
+    "overpass": (250, 150, 0),
+    "railway station": (250, 200, 250),
+    "airport": (200, 150, 0),
+    "unlabeled": (0, 0, 0),
+}

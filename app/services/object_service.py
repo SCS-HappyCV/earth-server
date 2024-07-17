@@ -26,7 +26,8 @@ from app.config import (
     SHARE_LINK_BASE_URL,
     TMPDIR,
 )
-from app.utils.image_funcs import get_metadata, tiff2jpg
+from app.utils.image_funcs import get_metadata, tiff2img
+from app.utils.img2svg import ImageToSvgConverter
 from app.utils.object_funcs import (
     get_available_object_name,
     get_object_base64,
@@ -45,8 +46,12 @@ class ObjectService:
         self,
         name: str,
         file_path: Path,
+        *,
         content_type: str | None = None,
         origin_type: str = "user",
+        thumbnail_format: str = "jpg",
+        mask_colors_map: dict | None = None,
+        mask_color_mode: str = "rgb",
     ):
         if content_type is None:
             content_type = mimetypes.guess_type(file_path, strict=False)[0]
@@ -57,40 +62,102 @@ class ObjectService:
         )
         image_info = Box(image_info)
 
-        # 测试图像是否为tif格式，如果是则转换为jpg格式，保存为缩略图
+        # 测试图像是否为tif格式，如果是则还要缩略图
         if content_type != "image/tiff":
-            return image_info
+            return Box(image_info=image_info)
 
-        # 将tif格式的图像转换为jpg格式
-        jpg_path = tiff2jpg(file_path)
-
-        # 保存缩略图到Minio并将元数据存储到数据库中
-        jpg_name = Path(name).with_suffix(".jpg")
-        jpg_name = str(jpg_name)
-        thumbnail_info = self._save_image(
-            jpg_name, jpg_path, content_type="image/jpeg", origin_type="thumbnail"
+        results = self._save_thumbnail(
+            name,
+            file_path,
+            thumbnail_format=thumbnail_format,
+            mask_colors_map=mask_colors_map,
+            mask_color_mode=mask_color_mode,
         )
 
-        # 更新图像的缩略图ID
-        thumbnail_info = Box(thumbnail_info)
-        thumbnail_info.id = image_info.object_id
-        del thumbnail_info["object_id"]
-        result = self.queries.update_thumbnail_id(**thumbnail_info)
-
-        # 校验结果
-        if not result:
-            logger.error(f"更新图像的缩略图ID时发生错误: {result}")
-            return None
-
-        # 删除临时文件
-        jpg_path = Path(jpg_path)
-        jpg_path.unlink(missing_ok=True)
+        # 更新对象的缩略图ID
+        self.queries.update_thumbnail_id(
+            object_id=image_info.object_id,
+            thumbnail_image_id=results.thumbnail_info.image_id,
+        )
 
         # 返回
-        return image_info
+        results.image_info = image_info
+        return results
+
+    def _save_thumbnail(
+        self,
+        name: str,
+        file_path: Path,
+        *,
+        thumbnail_format: str = "jpg",
+        mask_colors_map: dict = None,
+        mask_color_mode: str = "rgb",
+    ) -> dict | None:
+        """
+        保存缩略图文件到Minio并将元数据存储到数据库中
+
+        :param name: 原对象名
+        :param file_path: 原文件路径
+        :param object_id: 原对象ID
+        :param thumbnail_format: 缩略图格式
+        :return: 保存的缩略图信息，如果保存失败则返回None
+        """
+
+        # 获取缩略图格式
+        thumbnail_format = thumbnail_format.casefold()
+
+        if mimetypes.guess_type(file_path, strict=False)[0] == "image/tiff":
+            # 将tif格式的图像转换为缩略图
+            thumbnail_path = tiff2img(file_path, output_format=thumbnail_format)
+
+        # 保存缩略图到Minio并将元数据存储到数据库中
+        thumbnail_name = Path(name).with_suffix(f".{thumbnail_format}")
+        thumbnail_info = self._save_image(
+            thumbnail_name, thumbnail_path, origin_type="thumbnail"
+        )
+
+        # 保存结果
+        results = Box()
+        results.thumbnail_info = thumbnail_info
+
+        # # 校验结果
+        # if not result:
+        #     logger.error(f"更新文件的缩略图ID时发生错误: {result}")
+        #     return None
+
+        # 如果存在mask_colors_map，则根据缩略图生成对应的mask_svg图片
+        if mask_colors_map:
+            img2svg = ImageToSvgConverter(mask_colors_map, mask_color_mode)
+            svg_name = Path(name).with_suffix(".svg")
+            mask_svg_path = img2svg.convert(thumbnail_path)
+            # 保存mask_svg到Minio并将元数据存储到数据库中
+            mask_svg_info = self._save_image(
+                svg_name,
+                mask_svg_path,
+                origin_type="mask_svg",
+                content_type="image/svg+xml",
+            )
+
+            # 保存结果
+            results.mask_svg_info = mask_svg_info
+
+            # 删除临时文件
+            mask_svg_path.unlink(missing_ok=True)
+
+        # 删除临时文件
+        thumbnail_path = Path(thumbnail_path)
+        thumbnail_path.unlink(missing_ok=True)
+
+        # 返回缩略图信息和mask_svg信息
+        return results
 
     def _save_image(
-        self, name: str, file_path: Path, *, content_type: str, origin_type: str
+        self,
+        name: str,
+        file_path: str | Path,
+        *,
+        origin_type: str,
+        content_type: str | None = None,
     ) -> dict | None:
         """
         保存图像文件到Minio并将元数据存储到数据库中
@@ -100,6 +167,10 @@ class ObjectService:
         :return: 保存的图像ID，如果保存失败则返回None
         """
         try:
+            # 获取文件的内容类型
+            if content_type is None:
+                content_type = mimetypes.guess_type(file_path, strict=False)[0]
+
             # 设置名称和路径
             folders = "images"
             origin_name = name
@@ -113,8 +184,17 @@ class ObjectService:
             name = Path(object_name).name
 
             # 获取图像元数据
-            metadata = get_metadata(file_path)
-            metadata |= {"origin_name": origin_name, "type": "image"}
+            metadata = {"origin_name": origin_name, "type": "image"}
+            if content_type != "image/svg+xml":
+                metadata |= get_metadata(file_path)
+            else:
+                # svg是矢量图，没有高宽等信息
+                metadata |= {
+                    "width": 0,
+                    "height": 0,
+                    "bit_depth": 0,
+                    "channel_count": 0,
+                }
 
             # 上传文件到Minio
             self.minio_client.fput_object(
@@ -291,15 +371,15 @@ class ObjectService:
 
             match type:
                 case "image":
-                    objects_data = self.queries.get_images(
+                    objects_data = self.queries.get_all_images(
                         offset=offset, row_count=row_count, origin_types=origin_types
                     )
                 case "pointcloud":
-                    objects_data = self.queries.get_pointclouds(
+                    objects_data = self.queries.get_all_pointclouds(
                         offset=offset, row_count=row_count, origin_types=origin_types
                     )
                 case None | "all":
-                    objects_data = self.queries.get_objects(
+                    objects_data = self.queries.get_all_objects(
                         offset=offset, row_count=row_count, origin_types=origin_types
                     )
 
@@ -579,7 +659,6 @@ class ObjectService:
         object_id: int | None = None,
         *,
         should_potree: bool = True,
-        is_classified=False,
     ) -> Optional[Box]:
         """
         获取点云元数据和分享链接
@@ -608,6 +687,7 @@ class ObjectService:
 
             # 填充Potree分享链接
             if should_potree:
+                is_classified = pointcloud_data.origin_type == "system"
                 self._populate_potree(pointcloud_data, is_classified=is_classified)
 
             logger.info(f"成功获取点云: {pointcloud_data.name}, ID: {id}")
@@ -617,7 +697,7 @@ class ObjectService:
             logger.error(traceback.format_exc())
             return None
 
-    def delete_image(self, id: int) -> bool:
+    def delete_image(self, id: int | None = None, object_id: int | None = None) -> bool:
         """
         删除图像及其相关数据
 
@@ -625,31 +705,34 @@ class ObjectService:
         :return: 删除是否成功
         """
         try:
-            image_data = self.queries.get_image(id=id, object_id=None)
-            if not image_data:
-                logger.warning(f"未找到ID为{id}的图像")
+            if not (id or object_id):
+                logger.error("未提供ID或对象ID")
                 return False
 
-            object_data = self.queries.get_object(id=image_data.object_id)
-            if not object_data:
-                logger.warning(f"未找到与图像ID {id} 关联的对象")
+            image_data = self.queries.get_image(id=id, object_id=None)
+            if not image_data:
+                logger.warning(f"未找到ID为{id}, 对象ID为{object_id}的图像")
                 return False
 
             # 从Minio删除文件
-            self.minio_client.remove_object(self.bucket_name, object_data.folders)
+            object_name = get_object_name(image_data.name, image_data.folders)
+            self.minio_client.remove_object(self.bucket_name, object_name)
 
             # 从数据库删除记录
-            self.queries.delete_image(id=id)
-            self.queries.delete_object(id=object_data.id)
+            self.queries.delete_object(id=image_data.object_id)
 
-            logger.info(f"成功删除图像: {object_data.name}, ID: {id}")
+            logger.info(
+                f"成功删除图像: {image_data.name}, ID: {id}, 对象ID: {object_id}"
+            )
             return True
         except Exception as e:
             logger.error(f"删除图像时发生错误: {e}")
             logger.error(traceback.format_exc())
             return False
 
-    def delete_pointcloud(self, id: int) -> bool:
+    def delete_pointcloud(
+        self, id: int | None = None, object_id: int | None = None
+    ) -> bool:
         """
         删除点云及其相关数据
 
@@ -657,24 +740,25 @@ class ObjectService:
         :return: 删除是否成功
         """
         try:
-            pointcloud_data = self.queries.get_pointcloud(id=id)
-            if not pointcloud_data:
-                logger.warning(f"未找到ID为{id}的点云")
+            if not (id or object_id):
+                logger.error("未提供ID或对象ID")
                 return False
 
-            object_data = self.queries.get_object(id=pointcloud_data.object_id)
-            if not object_data:
-                logger.warning(f"未找到与点云ID {id} 关联的对象")
+            pointcloud_data = self.queries.get_pointcloud(id=id, object_id=object_id)
+            if not pointcloud_data:
+                logger.warning(f"未找到ID为{id}, 对象ID为{object_id}的点云")
                 return False
 
             # 从Minio删除文件
-            self.minio_client.remove_object(self.bucket_name, object_data.folders)
+            object_name = get_object_name(pointcloud_data.name, pointcloud_data.folders)
+            self.minio_client.remove_object(self.bucket_name, object_name)
 
             # 从数据库删除记录
-            self.queries.delete_pointcloud(id=id)
-            self.queries.delete_object(id=object_data.id)
+            self.queries.delete_object(id=pointcloud_data.object_id)
 
-            logger.info(f"成功删除点云: {object_data.name}, ID: {id}")
+            logger.info(
+                f"成功删除点云: {pointcloud_data.name}, ID: {id}, 对象ID: {object_id}"
+            )
             return True
         except Exception as e:
             logger.error(f"删除点云时发生错误: {e}")

@@ -4,41 +4,32 @@ import traceback
 
 from box import Box, BoxList
 from loguru import logger
-from minio import Minio
-import pugsql
-from redis import Redis
 
-from app.config import (
-    DB_URI,
-    MINIO_ACCESS_KEY,
-    MINIO_ENDPOINT,
-    MINIO_SECRET_KEY,
-    QUERIES_PATH,
-    REDIS_DB,
-    REDIS_HOST,
-    REDIS_PORT,
-    TASK_QUEUE,
+from app.config import TASK_QUEUE
+from app.services import (
+    ProjectService,
+    Segmentation2DService,
+    Segmentation3DService,
+    get_services,
 )
-from app.services import ProjectService, Segmentation2DService
+from app.utils.connections_manager import ConnectionsManager
 from app.utils.tasks_funcs import push_task
 
 
 class BackgroudTasksService:
     def __init__(self):
-        redis_client = Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
-        queries = pugsql.module(QUERIES_PATH)
-        queries.connect(DB_URI)
-        minio_client = Minio(
-            MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, secure=False
-        )
+        self.connections_manager = ConnectionsManager()
+        self.connections_manager.open()
 
-        self.project_service = ProjectService(queries, minio_client)
-        self.segmentation_2d_service = Segmentation2DService(
-            queries, minio_client, redis_client
+        self.services = get_services(
+            self.connections_manager.queries,
+            self.connections_manager.minio_client,
+            self.connections_manager.redis_client,
         )
+        self.project_service = self.services.project_service
+        self.segmentation_2d_service = self.services.segmentation_2d_service
+        self.segmentation_3d_service = self.services.segmentation_3d_service
 
-        self.queries = queries
-        self.redis_client = redis_client
         self.stop_event = Event()
 
     def background_tasks(self):
@@ -73,13 +64,12 @@ class BackgroudTasksService:
         logger.info("Stopping background tasks")
 
         self.stop_event.set()
-        self.redis_client.close()
-        self.queries.disconnect()
+        self.connections_manager.close()
 
         logger.info("Background tasks stopped")
 
     def get_task(self):
-        _, task_info = self.redis_client.blpop(TASK_QUEUE)
+        _, task_info = self.connections_manager.redis_client.blpop(TASK_QUEUE)
         task_info = task_info.decode("utf-8")
         task_info = Box().from_json(task_info)
 
@@ -97,6 +87,7 @@ class BackgroudTasksService:
                 logger.info(f"Running 2D segmentation task: {task_info.id}")
                 self.segmentation_2d_service.run(**task_info)
             case "3d_segmentation":
-                ...
+                logger.info(f"Running 3D segmentation task: {task_info.id}")
+                # self.segmentation_3d_service.run(**task_info)
             case _:
                 logger.error(f"Unknown task type: {task_info.type}")

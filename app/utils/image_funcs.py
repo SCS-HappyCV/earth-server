@@ -34,18 +34,27 @@ def get_metadata(file_path: str | Path):
     return metadata
 
 
-def tiff2jpg(
-    input_tiff_path: str | Path, output_jpg_path: str | Path | None = None
+def tiff2img(
+    input_tiff_path: str | Path,
+    output_path: str | Path | None = None,
+    output_format: str = "jpg",
 ) -> str:
-    if not output_jpg_path:
+    # 将TIFF图片转换为JPG或PNG格式
+    output_format = output_format.casefold()
+
+    if output_format not in ["jpg", "png"]:
+        msg = "输出格式必须是'jpg'或'png'"
+        raise ValueError(msg)
+
+    if not output_path:
         # 如果输出路径不存在，创建一个临时文件来存储输出的JPG图片
-        with NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
-            output_jpg_path = temp_file.name
-            logger.warning(f"输出路径不存在，使用临时文件: {output_jpg_path}")
+        with NamedTemporaryFile(delete=False, suffix=f".{output_format}") as temp_file:
+            output_path = temp_file.name
+            logger.warning(f"输出路径不存在，使用临时文件: {output_path}")
 
     # 将输入和输出路径转换为Path对象，并扩展用户路径
     input_path = Path(input_tiff_path).expanduser()
-    output_path = Path(output_jpg_path).expanduser()
+    output_path = Path(output_path).expanduser()
 
     # 检查输入文件是否存在，如果不存在则抛出异常
     if not input_path.is_file():
@@ -79,9 +88,13 @@ def tiff2jpg(
             # 确保输出路径的父目录存在
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # 保存图片为JPG格式
-            img = img.convert("RGB")
-            img.save(output_path, format="JPEG")
+            # 保存为JPG或PNG格式
+            if output_format == "jpg":
+                img = img.convert("RGB")
+                img.save(output_path, format="JPEG")
+            else:  # PNG
+                img.save(output_path, format="PNG")
+
             logger.info(f"图片已成功转换并保存至: {output_path}")
 
     except Exception as e:

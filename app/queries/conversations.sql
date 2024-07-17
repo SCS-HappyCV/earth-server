@@ -65,9 +65,9 @@ WHERE
 -- :name delete_conversation :affected
 UPDATE conversations, projects
 SET
-	conversations.is_deleted = true
+	projects.is_deleted = true
 WHERE
-	conversations.id = :id
+	(conversations.id = :id OR conversations.project_id = :project_id)
 	AND projects.id = conversations.project_id
 	AND projects.is_deleted = false;
 

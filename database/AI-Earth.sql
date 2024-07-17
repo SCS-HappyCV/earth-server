@@ -24,7 +24,7 @@ CREATE TABLE `objects` (
 	`type` ENUM('image', 'pointcloud'),
 	-- 原始上传的名称
 	`origin_name` VARCHAR(255) COMMENT '原始上传的名称',
-	`origin_type` ENUM('user', 'system', 'thumbnail') DEFAULT 'user',
+	`origin_type` ENUM('user', 'system', 'thumbnail', 'mask_svg') DEFAULT 'user',
 	`size` INT,
 	`thumbnail_id` INT UNIQUE,
 	`versions` INT DEFAULT 1,
@@ -101,8 +101,10 @@ CREATE TABLE `2d_segmentations` (
 	`image_id` INT,
 	`mask_image_id` INT,
 	`project_id` INT NOT NULL UNIQUE,
-	`plot_image_id` INT,
+	`plot_image_id` INT UNIQUE,
 	`result` JSON,
+	-- mask svg图片id
+	`mask_svg_id` INT UNIQUE COMMENT 'mask svg图片id',
 	PRIMARY KEY(`id`)
 );
 
@@ -113,6 +115,8 @@ CREATE TABLE `2d_detections` (
 	`result` JSON,
 	`project_id` INT NOT NULL UNIQUE,
 	`plot_image_id` INT,
+	`video_id` INT,
+	`plot_video_id` INT,
 	PRIMARY KEY(`id`)
 );
 
@@ -121,6 +125,19 @@ CREATE TABLE `conversation_images` (
 	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
 	`conversation_id` INT,
 	`image_id` INT,
+	PRIMARY KEY(`id`)
+);
+
+
+CREATE TABLE `videos` (
+	`id` INT NOT NULL AUTO_INCREMENT UNIQUE,
+	`object_id` INT UNIQUE,
+	-- 视频时长
+	`duration` TIME COMMENT '视频时长',
+	-- 视频编码格式
+	`codec` VARCHAR(255) COMMENT '视频编码格式',
+	-- 视频容器格式
+	`container` VARCHAR(255) COMMENT '视频容器格式',
 	PRIMARY KEY(`id`)
 );
 
@@ -190,4 +207,16 @@ CREATE TABLE `conversation_images` (
 -- ON UPDATE NO ACTION ON DELETE NO ACTION;
 -- ALTER TABLE `objects`
 -- ADD FOREIGN KEY(`thumbnail_id`) REFERENCES `images`(`id`)
+-- ON UPDATE NO ACTION ON DELETE NO ACTION;
+-- ALTER TABLE `2d_segmentations`
+-- ADD FOREIGN KEY(`mask_svg_id`) REFERENCES `images`(`id`)
+-- ON UPDATE NO ACTION ON DELETE NO ACTION;
+-- ALTER TABLE `videos`
+-- ADD FOREIGN KEY(`object_id`) REFERENCES `objects`(`id`)
+-- ON UPDATE NO ACTION ON DELETE NO ACTION;
+-- ALTER TABLE `2d_detections`
+-- ADD FOREIGN KEY(`video_id`) REFERENCES `videos`(`id`)
+-- ON UPDATE NO ACTION ON DELETE NO ACTION;
+-- ALTER TABLE `2d_detections`
+-- ADD FOREIGN KEY(`plot_video_id`) REFERENCES `videos`(`id`)
 -- ON UPDATE NO ACTION ON DELETE NO ACTION;

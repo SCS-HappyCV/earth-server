@@ -14,197 +14,178 @@ from litestar.status_codes import (
 from loguru import logger
 
 from app.schemas import ResponseWrapper
-from app.services import (
-    ChangeDetection2DService,
-    Detection2DService,
-    ProjectService,
-    Segmentation2DService,
-    Segmentation3DService,
-)
-
-
-def detection_2d_service_provider(state: State) -> Detection2DService:
-    return Detection2DService(state.queries, state.minio_client, state.redis_client)
-
-
-def change_detection_2d_service_provider(state: State) -> ChangeDetection2DService:
-    return ChangeDetection2DService(
-        state.queries, state.minio_client, state.redis_client
-    )
-
-
-def segmentation_2d_service_provider(state: State) -> Segmentation2DService:
-    return Segmentation2DService(state.queries, state.minio_client, state.redis_client)
-
-
-def segmentation_3d_service_provider(state: State) -> Segmentation3DService:
-    return Segmentation3DService(state.queries, state.minio_client, state.redis_client)
-
-
-def project_service_provider(state: State) -> ProjectService:
-    return ProjectService(state.queries, state.minio_client)
+from app.services import get_services
+from app.utils.connections_manager import ConnectionsManager
 
 
 class ProjectTaskController(Controller):
     path = "/project"
-    dependencies: ClassVar = {
-        "detection_2d_service": Provide(
-            detection_2d_service_provider, sync_to_thread=False
-        ),
-        "change_detection_2d_service": Provide(
-            change_detection_2d_service_provider, sync_to_thread=False
-        ),
-        "segmentation_2d_service": Provide(
-            segmentation_2d_service_provider, sync_to_thread=False
-        ),
-        "segmentation_3d_service": Provide(
-            segmentation_3d_service_provider, sync_to_thread=False
-        ),
-        "project_service": Provide(project_service_provider, sync_to_thread=False),
-    }
 
     @get(path="/", sync_to_thread=True)
     def get(
         self,
-        segmentation_2d_service: Segmentation2DService,
-        detection_2d_service: Detection2DService,
-        change_detection_2d_service: ChangeDetection2DService,
-        segmentation_3d_service: Segmentation3DService,
-        project_service: ProjectService,
         type: str | None = None,
         id: int | None = None,
         project_id: int | None = None,
     ) -> ResponseWrapper:
-        if not (type or id or project_id):
-            # Get all projects
-            logger.debug("Getting all projects")
-            result = project_service.gets()
-            if result is not None:
-                return ResponseWrapper(result)
-
-            return Response(
-                ResponseWrapper(code=2, message="No projects found"),
-                status_code=HTTP_404_NOT_FOUND,
+        with ConnectionsManager() as connections_manager:
+            services = get_services(
+                connections_manager.queries,
+                connections_manager.minio_client,
+                connections_manager.redis_client,
             )
+            project_service = services.project_service
+            segmentation_2d_service = services.segmentation_2d_service
+            detection_2d_service = services.detection_2d_service
+            change_detection_2d_service = services.change_detection_2d_service
+            segmentation_3d_service = services.segmentation_3d_service
 
-        match type:
-            case "2d_segmentation":
-                result = segmentation_2d_service.get(id=id, project_id=project_id)
-            case "2d_detection":
-                result = detection_2d_service.get(id=id, project_id=project_id)
-            case "2d_change_detection":
-                result = change_detection_2d_service.get(id=id, project_id=project_id)
-            case "3d_segmentation":
-                result = segmentation_3d_service.get(id=id, project_id=project_id)
-            case None:
-                result = project_service.get(project_id=project_id)
-                task_type = result["type"]
-                task_id = result["id"]
+            if not (type or id or project_id):
+                # Get all projects
+                logger.debug("Getting all projects")
+                result = project_service.gets()
+                if result is not None:
+                    return ResponseWrapper(result)
 
-                match task_type:
-                    case "segmentation":
-                        result = segmentation_2d_service.get(id=task_id)
-                    case "detection":
-                        result = detection_2d_service.get(id=task_id)
-                    case "change_detection":
-                        result = change_detection_2d_service.get(id=task_id)
-                    case "segmentation_3d":
-                        result = segmentation_3d_service.get(id=task_id)
-
-            case _:
                 return Response(
-                    ResponseWrapper(code=3, message="Invalid type"),
-                    status_code=HTTP_400_BAD_REQUEST,
+                    ResponseWrapper(code=2, message="No projects found"),
+                    status_code=HTTP_404_NOT_FOUND,
                 )
 
-        logger.debug(f"Result: {result}")
+            match type:
+                case "2d_segmentation":
+                    result = segmentation_2d_service.get(id=id, project_id=project_id)
+                case "2d_detection":
+                    result = detection_2d_service.get(id=id, project_id=project_id)
+                case "2d_change_detection":
+                    result = change_detection_2d_service.get(
+                        id=id, project_id=project_id
+                    )
+                case "3d_segmentation":
+                    result = segmentation_3d_service.get(id=id, project_id=project_id)
+                case None:
+                    result = project_service.get(project_id=project_id)
+                    task_type = result["type"]
+                    task_id = result["id"]
 
-        return ResponseWrapper(result)
+                    match task_type:
+                        case "segmentation":
+                            result = segmentation_2d_service.get(id=task_id)
+                        case "detection":
+                            result = detection_2d_service.get(id=task_id)
+                        case "change_detection":
+                            result = change_detection_2d_service.get(id=task_id)
+                        case "segmentation_3d":
+                            result = segmentation_3d_service.get(id=task_id)
+
+                case _:
+                    return Response(
+                        ResponseWrapper(code=3, message="Invalid type"),
+                        status_code=HTTP_400_BAD_REQUEST,
+                    )
+
+            logger.debug(f"Result: {result}")
+
+            return ResponseWrapper(result)
 
     @post(path="/", sync_to_thread=True)
-    def create(
-        self,
-        data: dict,
-        detection_2d_service: Detection2DService,
-        change_detection_2d_service: ChangeDetection2DService,
-        segmentation_2d_service: Segmentation2DService,
-        segmentation_3d_service: Segmentation3DService,
-    ) -> ResponseWrapper | Response:
-        logger.debug(f"Creating 2d detection with data {data}")
-
-        match data["type"]:
-            case "2d_detection":
-                task_id, project_id = detection_2d_service.create(**data)
-            case "2d_segmentation":
-                task_info = segmentation_2d_service.create(**data)
-
-                task_id = task_info["id"]
-                project_id = task_info["project_id"]
-            case "2d_change_detection":
-                task_id, project_id = change_detection_2d_service.create(**data)
-            case "3d_segmentation":
-                task_id, project_id = segmentation_3d_service.create(**data)
-            case _:
-                raise ValidationException
-
-        if task_id:
-            return ResponseWrapper(
-                {"id": task_id, "type": data["type"], "project_id": project_id},
-                message="Analysis task created successfully",
+    def create(self, data: dict) -> ResponseWrapper | Response:
+        with ConnectionsManager() as connections_manager:
+            services = get_services(
+                connections_manager.queries,
+                connections_manager.minio_client,
+                connections_manager.redis_client,
             )
-        else:
-            return Response(
-                ResponseWrapper(code=1, message="Failed to create project"),
-                status_code=HTTP_400_BAD_REQUEST,
-            )
+            detection_2d_service = services.detection_2d_service
+            change_detection_2d_service = services.change_detection_2d_service
+            segmentation_2d_service = services.segmentation_2d_service
+            segmentation_3d_service = services.segmentation_3d_service
+
+            logger.debug(f"Creating 2d detection with data {data}")
+
+            match data["type"]:
+                case "2d_detection":
+                    task_id, project_id = detection_2d_service.create(**data)
+                case "2d_segmentation":
+                    task_info = segmentation_2d_service.create(**data)
+
+                    task_id = task_info["id"]
+                    project_id = task_info["project_id"]
+                case "2d_change_detection":
+                    task_id, project_id = change_detection_2d_service.create(**data)
+                case "3d_segmentation":
+                    task_info = segmentation_3d_service.create(**data)
+
+                    task_id = task_info["id"]
+                    project_id = task_info["project_id"]
+                case _:
+                    raise ValidationException
+
+            if task_id:
+                return ResponseWrapper(
+                    {"id": task_id, "type": data["type"], "project_id": project_id},
+                    message="Analysis task created successfully",
+                )
+            else:
+                return Response(
+                    ResponseWrapper(code=1, message="Failed to create project"),
+                    status_code=HTTP_400_BAD_REQUEST,
+                )
 
     @delete(path="/", status_code=HTTP_200_OK, sync_to_thread=True)
     def delete(
         self,
-        detection_2d_service: Detection2DService,
-        change_detection_2d_service: ChangeDetection2DService,
-        segmentation_2d_service: Segmentation2DService,
-        segmentation_3d_service: Segmentation3DService,
-        project_service: ProjectService,
         id: int | None = None,
         type: str | None = None,
         project_id: int | None = None,
     ) -> ResponseWrapper | Response:
-        if not (id or project_id):
-            return Response(
-                ResponseWrapper(code=3, message="Id is required"),
-                status_code=HTTP_400_BAD_REQUEST,
+        with ConnectionsManager() as connections_manager:
+            services = get_services(
+                connections_manager.queries,
+                connections_manager.minio_client,
+                connections_manager.redis_client,
             )
+            segmentation_2d_service = services.segmentation_2d_service
+            detection_2d_service = services.detection_2d_service
+            change_detection_2d_service = services.change_detection_2d_service
+            segmentation_3d_service = services.segmentation_3d_service
+            project_service = services.project_service
 
-        match type:
-            case "2d_segmentation":
-                deleted_count = segmentation_2d_service.delete(
-                    id=id, project_id=project_id
-                )
-            case "2d_detection":
-                deleted_count = detection_2d_service.delete(
-                    id=id, project_id=project_id
-                )
-            case "2d_change_detection":
-                deleted_count = change_detection_2d_service.delete(
-                    id=id, project_id=project_id
-                )
-            case "3d_segmentation":
-                deleted_count = segmentation_3d_service.delete(
-                    id=id, project_id=project_id
-                )
-            case None:
-                deleted_count = project_service.delete(project_id)
-            case _:
+            if not (id or project_id):
                 return Response(
-                    ResponseWrapper(code=3, message="Invalid type"),
+                    ResponseWrapper(code=3, message="Id is required"),
                     status_code=HTTP_400_BAD_REQUEST,
                 )
 
-        if deleted_count:
-            return ResponseWrapper(message="Analysis task deleted successfully")
+            match type:
+                case "2d_segmentation":
+                    deleted_count = segmentation_2d_service.delete(
+                        id=id, project_id=project_id
+                    )
+                case "2d_detection":
+                    deleted_count = detection_2d_service.delete(
+                        id=id, project_id=project_id
+                    )
+                case "2d_change_detection":
+                    deleted_count = change_detection_2d_service.delete(
+                        id=id, project_id=project_id
+                    )
+                case "3d_segmentation":
+                    deleted_count = segmentation_3d_service.delete(
+                        id=id, project_id=project_id
+                    )
+                case None:
+                    deleted_count = project_service.delete(project_id)
+                case _:
+                    return Response(
+                        ResponseWrapper(code=3, message="Invalid type"),
+                        status_code=HTTP_400_BAD_REQUEST,
+                    )
 
-        return Response(
-            ResponseWrapper(code=2, message="Failed to delete project"),
-            status_code=HTTP_400_BAD_REQUEST,
-        )
+            if deleted_count:
+                return ResponseWrapper(message="Analysis task deleted successfully")
+
+            return Response(
+                ResponseWrapper(code=2, message="Failed to delete project"),
+                status_code=HTTP_400_BAD_REQUEST,
+            )

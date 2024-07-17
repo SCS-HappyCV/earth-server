@@ -15,8 +15,8 @@ WHERE
 	AND is_deleted = false;
 
 -- :name create_project :insert
-INSERT INTO projects (name, type, cover_image_id)
-VALUES (:name, :type, :cover_image_id);
+INSERT INTO projects (name, type, cover_image_id, status)
+VALUES (:name, :type, :cover_image_id, :status);
 
 -- :name delete_project :affected
 UPDATE projects
