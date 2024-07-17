@@ -33,6 +33,7 @@ class ObjectController(Controller):
         object_id: int | None = None,
         type: str | None = None,
         origin_type: str | None = None,
+        content_type: str | None = None,
         *,
         should_base64: bool = False,
         only_thumbnail: bool = False,
@@ -67,8 +68,17 @@ class ObjectController(Controller):
                         object_info = object_service.get(id=object_id)
             else:
                 origin_types = (origin_type,) if origin_type else None
+                if content_type:
+                    # 将 * 替换为 %，? 替换为 _
+                    logger.info(f"Getting objects with content_type: {content_type}")
+                    content_type = content_type.replace("*", "%").replace("?", "_")
+
                 object_info = object_service.gets(
-                    type=type, origin_types=origin_types, offset=start, row_count=length
+                    type=type,
+                    origin_types=origin_types,
+                    content_type=content_type,
+                    offset=start,
+                    row_count=length,
                 )
                 total_count = object_service.count(type=type, origin_types=origin_types)
 

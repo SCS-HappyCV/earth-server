@@ -3,11 +3,11 @@ from loguru import logger
 
 
 def merge_messages_images(messages: list, base64_images: list[str] | None = None):
-    messages = BoxList(messages)
-
     if not base64_images:
         logger.debug("No images to merge")
-        return
+        return messages
+
+    messages = BoxList(messages)
 
     # 第一条用户消息的内容
     first_user_content = [{"type": "text", "text": messages[1].content}]

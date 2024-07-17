@@ -359,6 +359,7 @@ class ObjectService:
         self,
         type: str | None = None,
         origin_types: tuple[str] | None = None,
+        content_type: str | None = None,
         offset: int | None = 0,
         row_count: int | None = 9999,
     ) -> BoxList | None:
@@ -370,11 +371,16 @@ class ObjectService:
         """
         try:
             origin_types = origin_types or ("user", "system")
+            if content_type is None:
+                content_type = "%"
 
             match type:
                 case "image":
                     objects_data = self.queries.get_all_images(
-                        offset=offset, row_count=row_count, origin_types=origin_types
+                        offset=offset,
+                        row_count=row_count,
+                        origin_types=origin_types,
+                        content_type=content_type,
                     )
                 case "pointcloud":
                     objects_data = self.queries.get_all_pointclouds(
@@ -382,7 +388,10 @@ class ObjectService:
                     )
                 case None | "all":
                     objects_data = self.queries.get_all_objects(
-                        offset=offset, row_count=row_count, origin_types=origin_types
+                        offset=offset,
+                        row_count=row_count,
+                        origin_types=origin_types,
+                        content_type=content_type,
                     )
 
             if not objects_data:
@@ -606,7 +615,9 @@ class ObjectService:
             logger.error(f"获取分享链接时发生错误: {e}")
             logger.error(traceback.format_exc())
 
-    def _populate_potree(self, object_data: dict, *, is_classified: bool):
+    def _populate_potree(
+        self, object_data: dict, *, is_classified: bool, origin_name: str | None = None
+    ):
         """
         填充对象数据的Potree分享链接
 
@@ -627,10 +638,24 @@ class ObjectService:
             potree_html_path = (
                 Path(POTREE_SERVER_ROOT) / POTREE_VIEWER_FOLDER / f"{etag}.html"
             )
+
+            # 如果直接提供了 origin_name，则使用该名称
+            if origin_name:
+                origin_name = Path(origin_name).stem
+                potree_html_path = (
+                    Path(POTREE_SERVER_ROOT)
+                    / POTREE_VIEWER_FOLDER
+                    / f"{origin_name}.html"
+                )
+                potree_link = furl(
+                    f"{POTREE_BASE_URL}/{POTREE_VIEWER_FOLDER}/{origin_name}.html"
+                ).url
+
             if potree_html_path.is_file():
                 logger.info(f"Potree文件已存在: {tmp_file_path}")
                 object_data["potree_link"] = potree_link
                 return object_data
+            return
 
             # 获取 Minio 对象名
             object_name = get_object_name(object_data["name"], object_data["folders"])
@@ -692,7 +717,11 @@ class ObjectService:
             # 填充Potree分享链接
             if should_potree:
                 is_classified = pointcloud_data.origin_type == "system"
-                self._populate_potree(pointcloud_data, is_classified=is_classified)
+                self._populate_potree(
+                    pointcloud_data,
+                    is_classified=is_classified,
+                    origin_name=pointcloud_data.origin_name,
+                )
 
             logger.info(f"成功获取点云: {pointcloud_data.name}, ID: {id}")
         except Exception as e:

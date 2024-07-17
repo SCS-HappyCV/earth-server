@@ -18,11 +18,12 @@ class ConversationService:
 
     def create(self, name, image_ids: list, messages: list, **kwargs):
         with self.queries.transaction() as tx:
+            cover_image_id = image_ids[0] if image_ids else None
             # 创建project
             project_id = self.project_service.create(
                 name=name,
                 type="conversation",
-                cover_image_id=image_ids[0],
+                cover_image_id=cover_image_id,
                 status="completed",
             )
 

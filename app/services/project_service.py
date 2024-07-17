@@ -99,6 +99,10 @@ class ProjectService:
                 id=project[column_name]
             )
             project[f"{key}_link"] = pointcloud_info.share_link
+            # 将key中的pointcloud替换为potree
+            key = key.replace("pointcloud", "potree")
+            if pointcloud_info.get("potree_link"):
+                project[f"{key}_link"] = pointcloud_info.potree_link
 
         return project
 

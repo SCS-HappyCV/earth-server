@@ -1,6 +1,7 @@
 import json
 import mimetypes
 from pathlib import Path
+from time import sleep
 
 from box import Box, BoxList
 from dotenv import load_dotenv
@@ -150,7 +151,12 @@ class Segmentation3DService:
             output_path,
         ]
         logger.info(f"Running command: {cmd}")
-        cmd()
+        # cmd()
+
+        sleep(120)
+        # 将input_path文件硬链接到output_path
+        output_path.hardlink_to(input_path)
+
         logger.debug(f"3D segmentation result saved to {output_path}")
 
         # 保存输出文件

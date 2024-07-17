@@ -212,6 +212,7 @@ WHERE
 	i.object_id = o.id
 	AND o.is_deleted = FALSE
 	AND o.origin_type IN :origin_types
+	AND o.content_type LIKE :content_type
 LIMIT :offset, :row_count;
 
 -- :name get_all_pointclouds :many
@@ -247,6 +248,7 @@ FROM objects
 WHERE
 	is_deleted = FALSE
 	AND origin_type IN :origin_types
+	AND content_type LIKE :content_type
 LIMIT :offset, :row_count;
 
 -- :name count_objects :scalar
