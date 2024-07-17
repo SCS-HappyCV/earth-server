@@ -285,11 +285,13 @@ class ObjectService:
             )
 
             logger.info(f"成功保存点云: {name}, ID: {pointcloud_id}")
-            return pointcloud_id, object_id
         except Exception as e:
             logger.error(f"保存点云时发生错误: {e}")
             logger.error(traceback.format_exc())
             return None
+        else:
+            pointcloud_info = {"id": pointcloud_id, "object_id": object_id}
+            return Box(pointcloud_info)
 
     def delete(self, id) -> bool:
         """
@@ -526,12 +528,12 @@ class ObjectService:
         should_base64=False,
         should_thumbnail=False,
         only_thumbnail=False,
-    ) -> None:
+    ):
         """
         填充对象数据
 
         :param image_data: 对象数据
-        :return: None
+        :return: 填充后的对象数据
         """
         # only_thumbnail 为 True 时，隐含 should_thumbnail 为 True
         if only_thumbnail:
@@ -555,10 +557,12 @@ class ObjectService:
 
             if only_thumbnail and object_data.get("thumbnail_id"):
                 # 如果只获取缩略图，而且缩略图存在，则不获取原图的Base64编码
-                return
+                return object_data
 
             base64_image = self._get_base64_image(object_data)
             object_data["base64_image"] = base64_image
+
+        return object_data
 
     def _get_base64_image(self, object_data: dict) -> str:
         """
@@ -643,12 +647,12 @@ class ObjectService:
             # 填充对象数据
             object_data["potree_link"] = potree_link
 
-            return object_data
         except Exception as e:
             logger.error(f"填充Potree分享链接时发生错误: {e}")
             logger.error(traceback.format_exc())
             raise
-
+        else:
+            return object_data
         finally:
             # 删除临时文件
             Path(tmp_file_path).unlink(missing_ok=True)
@@ -691,11 +695,12 @@ class ObjectService:
                 self._populate_potree(pointcloud_data, is_classified=is_classified)
 
             logger.info(f"成功获取点云: {pointcloud_data.name}, ID: {id}")
-            return pointcloud_data
         except Exception as e:
             logger.error(f"获取点云时发生错误: {e}")
             logger.error(traceback.format_exc())
             return None
+        else:
+            return pointcloud_data
 
     def delete_image(self, id: int | None = None, object_id: int | None = None) -> bool:
         """

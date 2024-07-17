@@ -1,19 +1,12 @@
-import json
 from threading import Event, Thread
 import traceback
 
 from box import Box, BoxList
 from loguru import logger
 
-from app.config import TASK_QUEUE
-from app.services import (
-    ProjectService,
-    Segmentation2DService,
-    Segmentation3DService,
-    get_services,
-)
+from app.services import get_services
 from app.utils.connections_manager import ConnectionsManager
-from app.utils.tasks_funcs import push_task
+from app.utils.tasks_funcs import get_task, push_task
 
 
 class BackgroudTasksService:
@@ -35,7 +28,7 @@ class BackgroudTasksService:
     def background_tasks(self):
         while not self.stop_event.is_set():
             try:
-                task_info = self.get_task()
+                task_info = get_task(self.connections_manager.redis_client)
                 self.run_task(task_info)
             except Exception as e:
                 logger.error(f"Error running task: {e}")
@@ -49,7 +42,7 @@ class BackgroudTasksService:
         for project in projects:
             project.project_id = project.id
             project.id = None
-            push_task(self.redis_client, project)
+            push_task(self.connections_manager.redis_client, project)
 
     def start(self):
         logger.info("Starting background tasks")
@@ -68,13 +61,6 @@ class BackgroudTasksService:
 
         logger.info("Background tasks stopped")
 
-    def get_task(self):
-        _, task_info = self.connections_manager.redis_client.blpop(TASK_QUEUE)
-        task_info = task_info.decode("utf-8")
-        task_info = Box().from_json(task_info)
-
-        return task_info
-
     def run_task(self, task_info: Box):
         logger.info(f"Running task: {task_info.id}")
 
@@ -88,6 +74,6 @@ class BackgroudTasksService:
                 self.segmentation_2d_service.run(**task_info)
             case "3d_segmentation":
                 logger.info(f"Running 3D segmentation task: {task_info.id}")
-                # self.segmentation_3d_service.run(**task_info)
+                self.segmentation_3d_service.run(**task_info)
             case _:
                 logger.error(f"Unknown task type: {task_info.type}")

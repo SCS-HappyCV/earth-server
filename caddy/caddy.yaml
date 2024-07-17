@@ -47,6 +47,9 @@ apps:
                     Access-Control-Allow-Headers:
                       - Origin, Content-Type, Accept
           - handle:
-              - handler: file_server
-                # root: /srv/www/earth
-                root: /root/autodl-tmp/earth
+              # - handler: file_server
+              #   # root: /srv/www/earth
+              #   root: /root/autodl-tmp/earth
+              - handler: reverse_proxy
+                upstreams:
+                  - dial: localhost:5173

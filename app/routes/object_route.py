@@ -132,15 +132,15 @@ class ObjectController(Controller):
                     )
                     image_info = results.image_info
 
-                    image_id, object_id = image_info.image_id, image_info.object_id
-                    result.image_ids.append(image_id)
-                    result.object_ids.append(object_id)
+                    result.image_ids.append(image_info.id)
+                    result.object_ids.append(image_info.object_id)
                 elif mime_type.name in ["octet-stream", "vnd.las", "vnd.laz"]:
-                    pointcloud_id, object_id = object_service.save_pointcloud(
+                    pointcloud_info = object_service.save_pointcloud(
                         file.filename, tmp_file, content_type=str(mime_type)
                     )
-                    result.pointcloud_ids.append(pointcloud_id)
-                    result.object_ids.append(object_id)
+
+                    result.pointcloud_ids.append(pointcloud_info.id)
+                    result.object_ids.append(pointcloud_info.object_id)
                 else:
                     logger.debug(f"Invalid file type: {mime_type}")
                     return Response(

@@ -90,6 +90,16 @@ class ProjectService:
             if "thumbnail_link" in image_info:
                 project[f"{key}_thumbnail_link"] = image_info.thumbnail_link
 
+        for key in ["pointcloud", "result_pointcloud"]:
+            column_name = f"{key}_id"
+            if not project.get(column_name):
+                continue
+
+            pointcloud_info = self.object_service.get_pointcloud(
+                id=project[column_name]
+            )
+            project[f"{key}_link"] = pointcloud_info.share_link
+
         return project
 
     def delete(self, id):

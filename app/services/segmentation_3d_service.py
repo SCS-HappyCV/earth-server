@@ -112,7 +112,6 @@ class Segmentation3DService:
         pointcloud_info = self.object_service.get_pointcloud(
             id=project_info.pointcloud_id
         )
-        pointcloud_info = Box(pointcloud_info)
 
         logger.info(f"3D Seg task image info: {pointcloud_info}")
 
@@ -120,9 +119,7 @@ class Segmentation3DService:
         input_path = self.object_service.copy2local(pointcloud_info)
 
         # 在 input_path 的基础上生成输出路径和掩码路径
-        output_path = "/root/autodl-tmp/Zhaoyibei/3D_dection/Zhongshui_inference/log/sem_seg/visual/"
-        output_path = Path(output_path)
-        output_path /= input_path.name
+        output_path = input_path.with_stem(input_path.stem + "_3d_seg")
         output_path = output_path.with_stem(output_path.stem + "_3d_seg")
 
         # 获取 result_origin_name
@@ -144,8 +141,9 @@ class Segmentation3DService:
             "3d",
             "python",
             "/root/autodl-tmp/Zhaoyibei/3D_dection/Zhongshui_inference/inference.py",
-            "--num_point",
-            8 * 1024,
+            "--test_area",
+            "4",
+            "--visual",
             "--input_path",
             input_path,
             "--output_path",
@@ -156,13 +154,13 @@ class Segmentation3DService:
         logger.debug(f"3D segmentation result saved to {output_path}")
 
         # 保存输出文件
-        pointcloud_info = self.object_service.save_pointcloud(
+        result_pointcloud_info = self.object_service.save_pointcloud(
             result_origin_name, output_path, origin_type="system"
         )
 
         # 更新数据库
         self.queries.complete_3d_segmentation(
-            id=id, project_id=project_id, result_pointcloud_id=pointcloud_info.id
+            id=id, project_id=project_id, result_pointcloud_id=result_pointcloud_info.id
         )
 
         # 删除临时文件
