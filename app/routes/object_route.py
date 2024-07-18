@@ -60,6 +60,11 @@ class ObjectController(Controller):
                         object_info = object_service.get_image(
                             id=id, object_id=object_id
                         )
+                    case "video":
+                        logger.info("Getting video")
+                        object_info = object_service.get_video(
+                            id=id, object_id=object_id
+                        )
                     case "pointcloud":
                         object_info = object_service.get_pointcloud(
                             id=id, object_id=object_id
@@ -144,6 +149,11 @@ class ObjectController(Controller):
 
                     result.image_ids.append(image_info.id)
                     result.object_ids.append(image_info.object_id)
+                elif mime_type.parent.name == "video":
+                    results = object_service.save_video(file.filename, tmp_file)
+                    video_info = results.video_info
+
+                    result.object_ids.append(video_info.object_id)
                 elif mime_type.name in ["octet-stream", "vnd.las", "vnd.laz"]:
                     pointcloud_info = object_service.save_pointcloud(
                         file.filename, tmp_file, content_type=str(mime_type)

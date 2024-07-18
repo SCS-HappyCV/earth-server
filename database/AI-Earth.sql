@@ -21,10 +21,10 @@ CREATE TABLE `objects` (
 	`folders` VARCHAR(255) COMMENT 'minio桶中保存的对象的目录路径',
 	-- 对象tags, https://min.io/docs/minio/linux/reference/minio-mc/mc-tag.html
 	`tags` JSON COMMENT '对象tags, https://min.io/docs/minio/linux/reference/minio-mc/mc-tag.html',
-	`type` ENUM('image', 'pointcloud'),
+	`type` ENUM("image", "pointcloud", "video"),
 	-- 原始上传的名称
 	`origin_name` VARCHAR(255) COMMENT '原始上传的名称',
-	`origin_type` ENUM('user', 'system', 'thumbnail', 'mask_svg') DEFAULT 'user',
+	`origin_type` ENUM("user", "system", "thumbnail", "mask_svg") DEFAULT 'user',
 	`size` INT,
 	`thumbnail_id` INT UNIQUE,
 	`versions` INT DEFAULT 1,
@@ -41,12 +41,12 @@ CREATE TABLE `projects` (
 	`updated_time` DATETIME DEFAULT NOW() ON UPDATE NOW(),
 	`modified_time` DATETIME DEFAULT NOW(),
 	-- 遥感影像解译,地物分类提取,水环境污染监测,流域变化检测
-	`type` ENUM('2d_change_detection', '2d_detection', '2d_segmentation', '3d_segmentation', 'conversation') COMMENT '遥感影像解译,地物分类提取,水环境污染监测,流域变化检测',
+	`type` ENUM("2d_change_detection", "2d_detection", "2d_segmentation", "3d_segmentation", "conversation") COMMENT '遥感影像解译,地物分类提取,水环境污染监测,流域变化检测',
 	-- 封面缩略图的id
 	`cover_image_id` INT COMMENT '封面缩略图的id',
 	`is_deleted` BOOLEAN DEFAULT false,
 	-- 项目状态
-	`status` ENUM('waiting', 'running', 'completed') DEFAULT 'waiting' COMMENT '项目状态',
+	`status` ENUM("waiting", "running", "completed") DEFAULT 'waiting' COMMENT '项目状态',
 	PRIMARY KEY(`id`)
 ) COMMENT='项目';
 
@@ -138,6 +138,8 @@ CREATE TABLE `videos` (
 	`codec` VARCHAR(255) COMMENT '视频编码格式',
 	-- 视频容器格式
 	`container` VARCHAR(255) COMMENT '视频容器格式',
+	`height` INT,
+	`width` INT,
 	PRIMARY KEY(`id`)
 );
 

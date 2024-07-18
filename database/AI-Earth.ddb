@@ -1,7 +1,7 @@
 {
 	"author": "Bit0r",
 	"title": "AI-Earth",
-	"date": "2024-07-16T15:47:08.739Z",
+	"date": "2024-07-18T13:20:59.384Z",
 	"tables": [
 		{
 			"name": "conversations",
@@ -190,7 +190,7 @@
 					"comment": "",
 					"id": 9,
 					"size": "",
-					"values": ["image", "pointcloud"]
+					"values": ["image", "pointcloud", "video"]
 				},
 				{
 					"name": "origin_name",
@@ -1036,6 +1036,34 @@
 					"comment": "视频容器格式",
 					"id": 4,
 					"size": 255
+				},
+				{
+					"name": "height",
+					"type": "INT",
+					"default": "",
+					"check": "",
+					"primary": false,
+					"unique": false,
+					"notNull": false,
+					"increment": false,
+					"comment": "",
+					"id": 5,
+					"size": "",
+					"values": []
+				},
+				{
+					"name": "width",
+					"type": "INT",
+					"default": "",
+					"check": "",
+					"primary": false,
+					"unique": false,
+					"notNull": false,
+					"increment": false,
+					"comment": "",
+					"id": 6,
+					"size": "",
+					"values": []
 				}
 			],
 			"comment": "",

@@ -6,6 +6,10 @@ VALUES (:object_id, :channel_count, :height, :width);
 INSERT INTO pointclouds (object_id, point_count)
 VALUES (:object_id, :point_count);
 
+-- :name insert_video :insert
+INSERT INTO videos (object_id, duration, codec, container, width, height)
+VALUES (:object_id, :duration, :codec, :container, :width, :height);
+
 -- :name insert_object :insert
 INSERT INTO objects (
 	name,
@@ -61,6 +65,31 @@ FROM
 WHERE
 	(i.id = :id OR o.id = :object_id)
 	AND i.object_id = o.id
+	AND o.is_deleted = FALSE;
+
+-- :name get_video :one
+SELECT
+	v.*,
+	o.name,
+	o.etag,
+	o.created_time,
+	o.updated_time,
+	o.modified_time,
+	o.type,
+	o.size,
+	o.content_type,
+	o.folders,
+	o.tags,
+	o.origin_name,
+	o.origin_type,
+	o.versions,
+	o.thumbnail_id
+FROM
+	videos AS v,
+	objects AS o
+WHERE
+	(v.id = :id OR o.id = :object_id)
+	AND v.object_id = o.id
 	AND o.is_deleted = FALSE;
 
 -- :name get_image_by_origin_name :one
@@ -263,6 +292,32 @@ WHERE
 	p.object_id = o.id
 	AND o.is_deleted = FALSE
 	AND o.origin_type IN :origin_types
+LIMIT :offset, :row_count;
+
+-- :name get_all_videos :many
+SELECT
+	v.*,
+	o.name,
+	o.etag,
+	o.created_time,
+	o.updated_time,
+	o.modified_time,
+	o.content_type,
+	o.folders,
+	o.tags,
+	o.type,
+	o.origin_name,
+	o.origin_type,
+	o.size,
+	o.thumbnail_id,
+	o.versions,
+	o.is_deleted
+FROM videos AS v, objects AS o
+WHERE
+	v.object_id = o.id
+	AND o.is_deleted = FALSE
+	AND o.origin_type IN :origin_types
+	AND o.content_type LIKE :content_type
 LIMIT :offset, :row_count;
 
 -- :name get_all_objects :many

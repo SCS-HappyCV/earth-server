@@ -34,6 +34,7 @@ from app.utils.object_funcs import (
     get_object_name,
 )
 from app.utils.url import rewrite_base_url
+from app.utils.video_funcs import get_video_info
 
 
 class ObjectService:
@@ -223,6 +224,65 @@ class ObjectService:
             logger.error(traceback.format_exc())
             return None
 
+    def save_video(
+        self, name: str, file_path: Path, *, origin_type: str = "user"
+    ) -> Optional[int]:
+        """
+        保存视频文件到Minio并将元数据存储到数据库中
+
+        :param name: 文件名
+        :param file_path: 文件路径
+        :param content_type: 内容类型
+        :return: 保存的视频ID，如果保存失败则返回None
+        """
+        try:
+            # 设置名称和路径
+            folders = "videos"
+            origin_name = name
+            content_type = mimetypes.guess_type(file_path, strict=False)[0]
+
+            # 获取可行的Minio对象名
+            object_name = Path(folders) / name
+            object_name = str(object_name)
+            object_name = get_available_object_name(
+                self.minio_client, self.bucket_name, object_name
+            )
+            name = Path(object_name).name
+
+            # 获取视频元数据
+            metadata = get_video_info(file_path)
+            metadata |= {"origin_name": origin_name, "type": "video"}
+
+            # 上传文件到Minio
+            self.minio_client.fput_object(
+                self.bucket_name,
+                object_name,
+                str(file_path),
+                content_type=content_type,
+                metadata=metadata,
+            )
+
+            # 保存对象元数据到数据库
+            object_id = self._save_object_metadata(
+                name,
+                folders,
+                type="video",
+                origin_name=origin_name,
+                origin_type=origin_type,
+            )
+
+            # 保存视频元数据到数据库
+            id = self.queries.insert_video(object_id=object_id, **metadata)
+
+            logger.info(f"成功保存视频: {name}, ID: {id}")
+        except Exception as e:
+            logger.error(f"保存视频时发生错误: {e}")
+            logger.error(traceback.format_exc())
+            return None
+        else:
+            video_info = {"id": id, "object_id": object_id}
+            return Box(video_info)
+
     def save_pointcloud(
         self,
         name: str,
@@ -384,6 +444,13 @@ class ObjectService:
                 case "pointcloud":
                     objects_data = self.queries.get_all_pointclouds(
                         offset=offset, row_count=row_count, origin_types=origin_types
+                    )
+                case "video":
+                    objects_data = self.queries.get_all_videos(
+                        offset=offset,
+                        row_count=row_count,
+                        origin_types=origin_types,
+                        content_type=content_type,
                     )
                 case None | "all":
                     objects_data = self.queries.get_all_objects(
