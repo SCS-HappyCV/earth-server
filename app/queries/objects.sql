@@ -63,6 +63,31 @@ WHERE
 	AND i.object_id = o.id
 	AND o.is_deleted = FALSE;
 
+-- :name get_image_by_origin_name :one
+SELECT
+	i.*,
+	o.name,
+	o.etag,
+	o.created_time,
+	o.updated_time,
+	o.modified_time,
+	o.type,
+	o.size,
+	o.content_type,
+	o.folders,
+	o.tags,
+	o.origin_name,
+	o.origin_type,
+	o.versions,
+	o.thumbnail_id
+FROM
+	images AS i,
+	objects AS o
+WHERE
+	o.origin_name = :origin_name
+	AND i.object_id = o.id
+	AND o.is_deleted = FALSE;
+
 -- :name get_pointcloud :one
 SELECT
 	p.*,

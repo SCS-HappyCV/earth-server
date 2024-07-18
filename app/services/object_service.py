@@ -76,8 +76,7 @@ class ObjectService:
 
         # 更新对象的缩略图ID
         self.queries.update_thumbnail_id(
-            object_id=image_info.object_id,
-            thumbnail_image_id=results.thumbnail_info.image_id,
+            object_id=image_info.object_id, thumbnail_image_id=results.thumbnail_info.id
         )
 
         # 返回
@@ -218,7 +217,7 @@ class ObjectService:
             image_id = self.queries.insert_image(object_id=object_id, **metadata)
 
             logger.info(f"成功保存图像: {name}, ID: {image_id}")
-            return {"image_id": image_id, "object_id": object_id}
+            return {"id": image_id, "object_id": object_id}
         except Exception as e:
             logger.error(f"保存图像时发生错误: {e}")
             logger.error(traceback.format_exc())
@@ -451,6 +450,7 @@ class ObjectService:
         id: int = None,
         object_id=None,
         *,
+        origin_name: str | None = None,
         should_base64=False,
         should_thumbnail=True,
     ) -> Optional[Box]:
@@ -463,6 +463,10 @@ class ObjectService:
         try:
             if id or object_id:
                 image_data = self.queries.get_image(id=id, object_id=object_id)
+            elif origin_name:
+                image_data = self.queries.get_image_by_origin_name(
+                    origin_name=origin_name
+                )
             else:
                 logger.warning("未提供ID或对象ID")
                 return None

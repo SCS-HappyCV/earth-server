@@ -5,43 +5,58 @@ WHERE project_id = :project_id;
 
 -- :name get_2d_change_detection :one
 SELECT
-    2d_change_detections.id,
-    image_id,
-    result,
-    project_id,
-    plot_image_id,
-    projects.name AS project_name,
-    projects.created_time AS project_created_time,
-    projects.updated_time AS project_updated_time
-FROM 2d_change_detections, projects
+	cd.*,
+	p.name,
+	p.created_time,
+	p.updated_time,
+	p.modified_time,
+	p.type,
+	p.cover_image_id,
+	p.status
+FROM 2d_change_detections AS cd, projects AS p
 WHERE
-    2d_change_detections.id = :id
-    AND 2d_change_detections.project_id = projects.id
-    AND projects.is_deleted = false;
+	(cd.id = :id OR p.id = :project_id)
+	AND cd.project_id = p.id
+	AND p.is_deleted = false;
 
 -- :name create_2d_change_detection :insert
 INSERT INTO 2d_change_detections (
-    project_id,
-    image1_id,
-    image2_id
+	project_id,
+	image1_id,
+	image2_id
 ) VALUES (
-    :project_id,
-    :image1_id,
-    :image2_id
+	:project_id,
+	:image1_id,
+	:image2_id
 );
 
 -- :name update_2d_change_detection :affected
 UPDATE 2d_change_detections
 SET
-    result = :result,
-    plot_image_id = :plot_image_id,
-    mask_image_id = :mask_image_id
+	result = :result,
+	plot_image_id = :plot_image_id,
+	mask_image_id = :mask_image_id
 WHERE id = :id;
 
 -- :name delete_2d_change_detection :affected
 UPDATE 2d_change_detections AS cd,
-    projects AS p
+	projects AS p
 SET p.is_deleted = true
 WHERE
-    cd.id = :id
-    AND cd.project_id = p.id;
+	cd.id = :id
+	AND cd.project_id = p.id;
+
+-- :name complete_2d_change_detection :affected
+UPDATE 2d_change_detections AS cd, projects AS p
+SET
+	cd.plot_image_id = :plot_image_id,
+	cd.mask_image_id = :mask_image_id,
+	p.modified_time = NOW(),
+	p.status = 'completed'
+WHERE
+	(
+		cd.id = :id
+		OR p.id = :project_id
+	)
+	AND cd.project_id = p.id
+	AND p.is_deleted = false;

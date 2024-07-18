@@ -105,26 +105,20 @@ class ProjectTaskController(Controller):
 
             match data["type"]:
                 case "2d_detection":
-                    task_id, project_id = detection_2d_service.create(**data)
+                    task_info = detection_2d_service.create(**data)
                 case "2d_segmentation":
                     task_info = segmentation_2d_service.create(**data)
-
-                    task_id = task_info["id"]
-                    project_id = task_info["project_id"]
                 case "2d_change_detection":
-                    task_id, project_id = change_detection_2d_service.create(**data)
+                    task_info = change_detection_2d_service.create(**data)
                 case "3d_segmentation":
                     task_info = segmentation_3d_service.create(**data)
-
-                    task_id = task_info["id"]
-                    project_id = task_info["project_id"]
                 case _:
                     raise ValidationException
 
-            if task_id:
+            task_info = Box(task_info)
+            if task_info.id:
                 return ResponseWrapper(
-                    {"id": task_id, "type": data["type"], "project_id": project_id},
-                    message="Analysis task created successfully",
+                    task_info, message="Analysis task created successfully"
                 )
             else:
                 return Response(

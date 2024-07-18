@@ -40,17 +40,17 @@ WHERE
 	AND s.project_id = p.id;
 
 -- :name complete_2d_segmentation :affected
-UPDATE 2d_segmentations, projects
+UPDATE 2d_segmentations AS 2d_seg, projects AS p
 SET
-	2d_segmentations.plot_image_id = :plot_image_id,
-	2d_segmentations.mask_image_id = :mask_image_id,
-	2d_segmentations.mask_svg_id = :mask_svg_id,
-	projects.modified_time = NOW(),
-	projects.status = 'completed'
+	2d_seg.plot_image_id = :plot_image_id,
+	2d_seg.mask_image_id = :mask_image_id,
+	2d_seg.mask_svg_id = :mask_svg_id,
+	p.modified_time = NOW(),
+	p.status = 'completed'
 WHERE
 	(
-		2d_segmentations.id = :id
-		OR projects.id = :project_id
+		2d_seg.id = :id
+		OR p.id = :project_id
 	)
-	AND 2d_segmentations.project_id = projects.id
-	AND projects.is_deleted = false;
+	AND 2d_seg.project_id = p.id
+	AND p.is_deleted = false;

@@ -168,9 +168,9 @@ class Segmentation2DService:
         self.queries.complete_2d_segmentation(
             id=id,
             project_id=project_id,
-            plot_image_id=image_info.image_id,
+            plot_image_id=image_info.id,
             mask_image_id=None,
-            mask_svg_id=mask_svg_info.image_id,
+            mask_svg_id=mask_svg_info.id,
         )
 
         # 删除临时文件

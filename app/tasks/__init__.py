@@ -22,6 +22,7 @@ class BackgroudTasksService:
         self.project_service = self.services.project_service
         self.segmentation_2d_service = self.services.segmentation_2d_service
         self.segmentation_3d_service = self.services.segmentation_3d_service
+        self.change_detection_2d_service = self.services.change_detection_2d_service
 
         self.stop_event = Event()
 
@@ -68,7 +69,8 @@ class BackgroudTasksService:
             case "2d_detection":
                 ...
             case "2d_change_detection":
-                ...
+                logger.info(f"Running 2D change detection task: {task_info.id}")
+                self.change_detection_2d_service.run(**task_info)
             case "2d_segmentation":
                 logger.info(f"Running 2D segmentation task: {task_info.id}")
                 self.segmentation_2d_service.run(**task_info)
