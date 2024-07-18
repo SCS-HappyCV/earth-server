@@ -10,6 +10,7 @@ from pugsql.compiler import Module
 from redis import Redis
 
 from app.utils.tasks_funcs import push_task
+from app.utils.video_funcs import convert_video
 
 from .object_service import ObjectService
 from .project_service import ProjectService
@@ -127,32 +128,38 @@ class Detection2DService:
 
         data_info = Box(data_info)
 
-        logger.info(f"2d Seg task image info: {data_info}")
+        logger.info(f"2d detection task data info: {data_info}")
 
         # 从 MinIO 复制图片到临时文件
         input_path = self.object_service.copy2local(data_info)
 
         # 在 input_path 的基础上生成输出路径
-        output_path = input_path.with_stem(input_path.stem + "_2d_det")
+        output_path = input_path.with_stem(input_path.stem + "_raw_2d_det")
+        if project_info.video_id:
+            output_path = output_path.with_suffix(".mp4")
 
         # 获取 result_origin_name
         origin_name = Path(data_info.origin_name)
-        result_origin_name = origin_name.with_stem(origin_name.stem + "_2d_seg").name
+        result_origin_name = origin_name.with_stem(origin_name.stem + "_2d_det")
+        if project_info.video_id:
+            result_origin_name = result_origin_name.with_suffix(".mp4")
 
         # 运行预测脚本
-        micromamba[
+        cmd = micromamba[
             "run",
             "-n",
             "zyb",
-            "yolo",
-            "track",
-            "model",
-            "",
-            "source",
+            "python",
+            "/root/autodl-tmp/Zhaoyibei/2D_seg/yolo_det/track.py",
+            "--input",
             input_path,
-            "--outputpath",
-            "save=true",
-        ]()
+            "--output",
+            output_path,
+        ]
+
+        logger.debug(f"Running command: {cmd}")
+        cmd()
+        logger.debug(f"2d detection task completed: {project_info}")
 
         # 保存输出文件
         if project_info.image_id:
@@ -160,22 +167,27 @@ class Detection2DService:
                 result_origin_name, output_path, origin_type="system"
             )
         elif project_info.video_id:
+            # 视频转码
+            output_raw_path = output_path
+            output_path = output_raw_path.with_stem(input_path.stem + "_2d_det")
+
+            convert_video(output_raw_path, output_path, codec="avc")
             results = self.object_service.save_video(
                 result_origin_name, output_path, origin_type="system"
             )
 
         results = Box(results)
+        logger.debug(f"2d detection results: {results}")
 
         # 设置plot_image_id和plot_video_id
         if project_info.image_id:
-            plot_image_id = results.image_info.id
+            plot_image_id = results.id
             plot_video_id = None
         elif project_info.video_id:
             plot_image_id = None
-            plot_video_id = results.video_info.id
+            plot_video_id = results.id
 
         # 更新数据库
-        data_info = results.image_info
         self.queries.complete_2d_detection(
             id=id,
             project_id=project_id,

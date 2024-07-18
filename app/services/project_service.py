@@ -119,9 +119,13 @@ class ProjectService:
             if pointcloud_info.get("potree_link"):
                 project[f"{key}_link"] = pointcloud_info.potree_link
 
-        if "video_id" in project:
-            video_info = self.object_service.get_video(id=project.video_id)
-            project.video_link = video_info.share_link
+        for key in ["video", "plot_video"]:
+            column_name = f"{key}_id"
+            if not project.get(column_name):
+                continue
+
+            video_info = self.object_service.get_video(id=project[column_name])
+            project[f"{key}_link"] = video_info.share_link
 
         return project
 
