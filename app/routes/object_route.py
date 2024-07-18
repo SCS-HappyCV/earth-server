@@ -18,6 +18,7 @@ from litestar.status_codes import (
 from loguru import logger
 
 from app.schemas import ResponseWrapper
+from app.schemas.respone_schema import Pagination
 from app.services import get_services
 from app.utils.connections_manager import ConnectionsManager
 
@@ -99,12 +100,9 @@ class ObjectController(Controller):
                 return ResponseWrapper(object_info)
 
             return ResponseWrapper(
-                {
-                    "total": total_count,
-                    "start": start,
-                    "length": length,
-                    "data": object_info,
-                }
+                Pagination(
+                    total=total_count, start=start, length=length, data=object_info
+                )
             )
 
     @post(path="/", sync_to_thread=True)

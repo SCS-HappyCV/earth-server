@@ -22,7 +22,9 @@ class Detection2DService:
         self.object_service = ObjectService(queries, minio_client)
         self.redis_client = redis_client
 
-    def create(self, image_id, project_id=None, project_name=None, **kwargs):
+    def create(
+        self, image_id=None, video_id=None, project_id=None, project_name=None, **kwargs
+    ):
         with self.queries.transaction() as tx:
             if project_id:
                 project = self.project_service.get(project_id)
@@ -32,35 +34,44 @@ class Detection2DService:
                     msg = f"Project with id {project_id} does not exist"
                     raise ValueError(msg)
             else:
-                image_info = self.object_service.get_image(id=image_id)
-                image_info = Box(image_info)
+                if video_id:
+                    video_info = self.object_service.get_video(id=video_id)
+                    video_info = Box(video_info)
+                    cover_image_id = None
+                elif image_id:
+                    image_info = self.object_service.get_image(id=image_id)
+                    image_info = Box(image_info)
+                    cover_image_id = image_info.thumbnail_id or image_id
+                else:
+                    tx.rollback()
 
-                cover_image_id = image_info.thumbnail_id or image_id
+                    msg = "Either image_id or video_id must be provided"
+                    raise ValueError(msg)
 
                 project_id = self.project_service.create(
-                    type="2d_segmentation",
+                    type="2d_detection",
                     name=project_name,
                     cover_image_id=cover_image_id,
                 )
 
-            last_id = self.queries.create_2d_segmentation(
-                project_id=project_id, image_id=image_id
+            last_id = self.queries.create_2d_detection(
+                project_id=project_id, image_id=image_id, video_id=video_id
             )
             if not last_id:
                 tx.rollback()
 
-                msg = "Failed to create 2d segmentation"
+                msg = "Failed to create 2d detection"
                 raise ValueError(msg)
 
         # 将任务推送到redis队列
-        task_info = {"type": "2d_segmentation", "id": last_id, "project_id": project_id}
+        task_info = {"type": "2d_detection", "id": last_id, "project_id": project_id}
         push_task(self.redis_client, task_info)
 
         return task_info
 
     def get(self, *, id=None, project_id=None):
         if id or project_id:
-            project = self.queries.get_2d_segmentation(id=id, project_id=project_id)
+            project = self.queries.get_2d_detection(id=id, project_id=project_id)
         else:
             msg = "Either id or project_id must be provided"
             raise ValueError(msg)
@@ -68,28 +79,28 @@ class Detection2DService:
         project = Box(project)
         if not project:
             logger.error(
-                f"2D segmentation task not found: id={id}, project_id={project_id}"
+                f"2D detection task not found: id={id}, project_id={project_id}"
             )
             return None
 
-        logger.debug(f"2D segmentation task found: {project}")
+        logger.debug(f"2D detection task found: {project}")
         project = self.project_service._populate_project(project)
 
         return project
 
     def delete(self, id=None, project_id=None):
         if id or project_id:
-            return self.queries.delete_2d_segmentation(id=id, project_id=project_id)
+            return self.queries.delete_2d_detection(id=id, project_id=project_id)
         else:
             msg = "Either id or project_id must be provided"
             raise ValueError(msg)
 
     def run(self, id: int | None = None, project_id: int | None = None, **kwargs):
         """
-        Run 2D segmentation task
+        Run 2D detection task
 
         Args:
-            id (int, optional): 2D segmentation task ID. Defaults to None.
+            id (int, optional): 2D detection task ID. Defaults to None.
             project_id (int, optional): Project ID. Defaults to None.
         """
 
@@ -98,7 +109,7 @@ class Detection2DService:
 
         if not project_info:
             logger.error(
-                f"Segmentation 2D task not found: id={id}, project_id={project_id}"
+                f"detection 2D task not found: id={id}, project_id={project_id}"
             )
             return
 
@@ -106,71 +117,72 @@ class Detection2DService:
 
         logger.info(f"Running task: {project_info}")
 
-        image_info = self.object_service.get_image(id=project_info.image_id)
-        image_info = Box(image_info)
+        if project_info.image_id:
+            data_info = self.object_service.get_image(id=project_info.image_id)
+        elif project_info.video_id:
+            data_info = self.object_service.get_video(id=project_info.video_id)
+        else:
+            logger.error("Neither image_id nor video_id found")
+            return
 
-        logger.info(f"2d Seg task image info: {image_info}")
+        data_info = Box(data_info)
+
+        logger.info(f"2d Seg task image info: {data_info}")
 
         # 从 MinIO 复制图片到临时文件
-        input_path = self.object_service.copy2local(image_info)
+        input_path = self.object_service.copy2local(data_info)
 
-        # 在 input_path 的基础上生成输出路径和掩码路径
-        output_path = input_path.with_stem(input_path.stem + "_2d_seg")
-        mask_path = input_path.with_stem(input_path.stem + "_2d_seg_mask")
-        mask_path = mask_path.with_suffix(".png")
+        # 在 input_path 的基础上生成输出路径
+        output_path = input_path.with_stem(input_path.stem + "_2d_det")
 
         # 获取 result_origin_name
-        origin_name = Path(image_info.origin_name)
+        origin_name = Path(data_info.origin_name)
         result_origin_name = origin_name.with_stem(origin_name.stem + "_2d_seg").name
-
-        # # 都转换为字符串
-        # input_path = str(input_path)
-        # output_path = str(output_path)
-        # mask_path = str(mask_path)
 
         # 运行预测脚本
         micromamba[
             "run",
             "-n",
             "zyb",
-            "python",
-            "/root/autodl-tmp/Zhaoyibei/2D_seg/DPA/predict.py",
-            "--inputimage",
+            "yolo",
+            "track",
+            "model",
+            "",
+            "source",
             input_path,
             "--outputpath",
-            output_path,
-            "--maskpath",
-            mask_path,
+            "save=true",
         ]()
 
         # 保存输出文件
-        results = self.object_service.save_image(
-            result_origin_name,
-            output_path,
-            origin_type="system",
-            thumbnail_format="png",
-            mask_colors_map=SEGMENTATION_2D_BGR,
-            mask_color_mode="bgr",
-        )
+        if project_info.image_id:
+            results = self.object_service.save_image(
+                result_origin_name, output_path, origin_type="system"
+            )
+        elif project_info.video_id:
+            results = self.object_service.save_video(
+                result_origin_name, output_path, origin_type="system"
+            )
+
         results = Box(results)
 
-        # 保存掩码文件
-        # mask_info = self.object_service.save_image(
-        #     result_origin_name, mask_path, origin_type="system"
-        # )
+        # 设置plot_image_id和plot_video_id
+        if project_info.image_id:
+            plot_image_id = results.image_info.id
+            plot_video_id = None
+        elif project_info.video_id:
+            plot_image_id = None
+            plot_video_id = results.video_info.id
 
         # 更新数据库
-        image_info = results.image_info
-        mask_svg_info = results.mask_svg_info
-        self.queries.complete_2d_segmentation(
+        data_info = results.image_info
+        self.queries.complete_2d_detection(
             id=id,
             project_id=project_id,
-            plot_image_id=image_info.id,
-            mask_image_id=None,
-            mask_svg_id=mask_svg_info.id,
+            plot_image_id=plot_image_id,
+            plot_video_id=plot_video_id,
         )
 
         # 删除临时文件
         Path(input_path).unlink(missing_ok=True)
         Path(output_path).unlink(missing_ok=True)
-        Path(mask_path).unlink(missing_ok=True)

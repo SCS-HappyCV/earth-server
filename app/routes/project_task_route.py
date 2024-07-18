@@ -14,6 +14,7 @@ from litestar.status_codes import (
 from loguru import logger
 
 from app.schemas import ResponseWrapper
+from app.schemas.respone_schema import Pagination
 from app.services import get_services
 from app.utils.connections_manager import ConnectionsManager
 
@@ -27,6 +28,8 @@ class ProjectTaskController(Controller):
         type: str | None = None,
         id: int | None = None,
         project_id: int | None = None,
+        start: int | None = 0,
+        length: int | None = 999,
     ) -> ResponseWrapper:
         with ConnectionsManager() as connections_manager:
             services = get_services(
@@ -43,9 +46,15 @@ class ProjectTaskController(Controller):
             if not (type or id or project_id):
                 # Get all projects
                 logger.debug("Getting all projects")
-                result = project_service.gets()
+                result = project_service.gets(offset=start, row_count=length)
+                total_count = project_service.count()
+
                 if result is not None:
-                    return ResponseWrapper(result)
+                    return ResponseWrapper(
+                        Pagination(
+                            total=total_count, start=start, length=length, data=result
+                        )
+                    )
 
                 return Response(
                     ResponseWrapper(code=2, message="No projects found"),

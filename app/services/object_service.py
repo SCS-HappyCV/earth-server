@@ -558,6 +558,36 @@ class ObjectService:
             logger.error(traceback.format_exc())
             return None
 
+    def get_video(self, id: int | None = None, object_id: int | None = None) -> Box:
+        """
+        获取视频元数据和分享链接
+
+        :param id: 视频ID
+        :return: 包含视频元数据和分享链接的Box对象，如果获取失败则返回None
+        """
+        try:
+            if id or object_id:
+                video_data = self.queries.get_video(id=id, object_id=object_id)
+            else:
+                logger.warning("未提供ID或对象ID")
+                return None
+
+            if not video_data:
+                logger.warning(f"未找到ID为{id}的视频")
+                return None
+
+            video_data = Box(video_data)
+            logger.debug(f"获取到的视频数据: {video_data}")
+
+            # 填充视频数据
+            self._populate_object(video_data)
+
+            return video_data
+        except Exception as e:
+            logger.error(f"获取视频时发生错误: {e}")
+            logger.error(traceback.format_exc())
+            return None
+
     def get_images(
         self,
         ids: list[int] | None = None,

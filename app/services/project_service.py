@@ -70,6 +70,21 @@ class ProjectService:
 
         return True
 
+    def count(
+        self, types: tuple[str] | None = None, statuses: tuple[str] | None = None
+    ):
+        if not types:
+            types = (
+                "2d_segmentation",
+                "2d_detection",
+                "2d_change_detection",
+                "3d_segmentation",
+            )
+        if not statuses:
+            statuses = ("waiting", "running", "completed")
+
+        return self.queries.count_projects(types=types, statuses=statuses)
+
     def _populate_project(self, project: dict):
         project = Box(project)
 
@@ -103,6 +118,10 @@ class ProjectService:
             key = key.replace("pointcloud", "potree")
             if pointcloud_info.get("potree_link"):
                 project[f"{key}_link"] = pointcloud_info.potree_link
+
+        if "video_id" in project:
+            video_info = self.object_service.get_video(id=project.video_id)
+            project.video_link = video_info.share_link
 
         return project
 

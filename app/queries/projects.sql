@@ -14,6 +14,14 @@ WHERE
 	id = :id
 	AND is_deleted = false;
 
+-- :name count_projects :scalar
+SELECT count(*)
+FROM projects
+WHERE
+	is_deleted = false
+	AND type IN :types
+	AND status IN :statuses;
+
 -- :name create_project :insert
 INSERT INTO projects (name, type, cover_image_id, status)
 VALUES (:name, :type, :cover_image_id, :status);
