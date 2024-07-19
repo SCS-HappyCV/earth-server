@@ -1,3 +1,4 @@
+from calendar import c
 from typing import Any, ClassVar
 
 from box import Box
@@ -69,7 +70,7 @@ class ConversationController(Controller):
                 conversation, message="Analysis task created successfully"
             )
 
-    @put(path="/{id:int}", sync_to_thread=True)
+    @put(path="/messages/{id:int}", sync_to_thread=True)
     def update(self, data: list, id: int) -> ResponseWrapper | Response:
         with ConnectionsManager() as connections_manager:
             services = get_services(
@@ -98,6 +99,36 @@ class ConversationController(Controller):
             return ResponseWrapper(
                 conversation, message="Analysis task updated successfully"
             )
+
+    @put(path="/name/{id:int}", sync_to_thread=True)
+    def update_name(self, data: dict, id: int) -> ResponseWrapper | Response:
+        with ConnectionsManager() as connections_manager:
+            services = get_services(
+                connections_manager.queries,
+                connections_manager.minio_client,
+                connections_manager.redis_client,
+            )
+            conversation_service = services.conversation_service
+
+            if not data:
+                return Response(
+                    ResponseWrapper(code=3, message="Data is required"),
+                    status_code=HTTP_404_NOT_FOUND,
+                )
+
+            logger.debug(f"Updating Conversation: {data}")
+
+            updated_count = conversation_service.update(id=id, **data)
+
+            if updated_count == 0:
+                return Response(
+                    ResponseWrapper(
+                        code=2, message=f"Conversation with id {id} not found"
+                    ),
+                    status_code=HTTP_404_NOT_FOUND,
+                )
+
+            return ResponseWrapper(message="Conversation updated successfully")
 
     @delete(path="/", status_code=HTTP_200_OK, sync_to_thread=True)
     def remove(

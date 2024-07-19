@@ -1,4 +1,5 @@
 import json
+from tkinter import NO
 
 from box import Box, BoxList
 from loguru import logger
@@ -122,7 +123,21 @@ class ConversationService:
 
         return conversations
 
-    def update(self, id, messages: list, **kwargs):
+    def update(
+        self, id, messages: list | None = None, name: str | None = None, **kwargs
+    ):
+        if name:
+            # 更新project的name
+            affect_num = self.queries.update_conversation_name(
+                id=id, project_id=None, name=name
+            )
+
+            if affect_num == 0:
+                msg = f"Conversation with id {id} not found"
+                raise ValueError(msg)
+            else:
+                return affect_num
+
         # 更新conversation
         messages = delete_messages_images(messages)
 

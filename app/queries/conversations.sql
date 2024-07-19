@@ -37,14 +37,23 @@ INSERT INTO conversation_images (conversation_id, image_id)
 VALUES (:conversation_id, :image_id);
 
 -- :name update_conversation :affected
-UPDATE conversations, projects
+UPDATE conversations AS c, projects AS p
 SET
 	messages = :messages,
-	projects.modified_time = NOW()
+	p.modified_time = NOW()
 WHERE
-	conversations.id = :id
-	AND projects.id = conversations.project_id
-	AND projects.is_deleted = false;
+	c.id = :id
+	AND p.id = c.project_id
+	AND p.is_deleted = false;
+
+-- :name update_conversation_name :affected
+UPDATE conversations AS c, projects AS p
+SET
+	p.name = :name
+WHERE
+	(c.id = :id OR p.id = :project_id)
+	AND p.id = c.project_id
+	AND p.is_deleted = false;
 
 -- :name get_conversations :many
 SELECT

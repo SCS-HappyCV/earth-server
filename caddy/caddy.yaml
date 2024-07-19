@@ -47,16 +47,16 @@ apps:
                     Access-Control-Allow-Headers:
                       - Origin, Content-Type, Accept
           - handle:
-              - handler: vars
-                root: /root/autodl-tmp/earth/dist
-              - handler: file_server
-                hide:
-                  - /index.html
-              - handler: rewrite
-                uri: /index.html
-              - handler: encode
-                encodings:
-                  gzip: {}
-              # - handler: reverse_proxy
-              #   upstreams:
-              #     - dial: localhost:5173
+              # - handler: vars
+              #   root: /root/autodl-tmp/earth/dist
+              # - handler: file_server
+              #   hide:
+              #     - /index.html
+              # - handler: rewrite
+              #   uri: /index.html
+              # - handler: encode
+              #   encodings:
+              #     gzip: {}
+              - handler: reverse_proxy
+                upstreams:
+                  - dial: localhost:4173
