@@ -26,6 +26,12 @@ class ProjectTaskController(Controller):
     def get(
         self,
         type: str | None = None,
+        types: list[str] = (
+            "2d_segmentation",
+            "2d_detection",
+            "2d_change_detection",
+            "3d_segmentation",
+        ),
         id: int | None = None,
         project_id: int | None = None,
         start: int | None = 0,
@@ -46,7 +52,9 @@ class ProjectTaskController(Controller):
             if not (type or id or project_id):
                 # Get all projects
                 logger.debug("Getting all projects")
-                result = project_service.gets(offset=start, row_count=length)
+                result = project_service.gets(
+                    offset=start, row_count=length, types=types
+                )
                 total_count = project_service.count()
 
                 if result is not None:
