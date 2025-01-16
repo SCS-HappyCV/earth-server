@@ -7,7 +7,7 @@ apps:
     servers:
       example:
         listen:
-          - :6006
+          - :8008
         routes:
           - match:
               - path:
@@ -16,8 +16,8 @@ apps:
               - handler: rewrite
                 strip_path_prefix: /potree
               - handler: file_server
-                # root: /srv/www/potree
-                root: /root/autodl-tmp/potree
+                root: /srv/www/potree
+                # root: /root/autodl-tmp/potree
           - match:
               - path:
                   - /file/*
@@ -59,4 +59,4 @@ apps:
               #     gzip: {}
               - handler: reverse_proxy
                 upstreams:
-                  - dial: localhost:4173
+                  - dial: localhost:5173

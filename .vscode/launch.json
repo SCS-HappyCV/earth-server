@@ -9,13 +9,7 @@
 			"type": "debugpy",
 			"request": "launch",
 			"module": "litestar",
-			"args": [
-				"run",
-				"-H",
-				"0.0.0.0",
-				"-r",
-				"-d"
-			],
+			"args": ["run", "-dH", "0.0.0.0"]
 		}
 	]
 }

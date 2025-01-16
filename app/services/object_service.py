@@ -717,7 +717,12 @@ class ObjectService:
             logger.error(traceback.format_exc())
 
     def _populate_potree(
-        self, object_data: dict, *, is_classified: bool, origin_name: str | None = None
+        self,
+        object_data: dict,
+        *,
+        is_classified: bool,
+        origin_name: str | None = None,
+        use_origin_name: bool = False,
     ):
         """
         填充对象数据的Potree分享链接
@@ -741,7 +746,7 @@ class ObjectService:
             )
 
             # 如果直接提供了 origin_name，则使用该名称
-            if origin_name:
+            if origin_name and use_origin_name:
                 origin_name = Path(origin_name).stem
                 potree_html_path = (
                     Path(POTREE_SERVER_ROOT)
@@ -756,7 +761,7 @@ class ObjectService:
                 logger.info(f"Potree文件已存在: {tmp_file_path}")
                 object_data["potree_link"] = potree_link
                 return object_data
-            return
+            # return
 
             # 获取 Minio 对象名
             object_name = get_object_name(object_data["name"], object_data["folders"])
@@ -766,9 +771,12 @@ class ObjectService:
 
             # 运行 PotreePublisher
             is_classified = "--classified" if is_classified else "--no-classified"
-            PotreePublisher[
+            cmd = PotreePublisher[
                 "--potree-server-root", POTREE_SERVER_ROOT, is_classified, tmp_file_path
-            ]()
+            ]
+
+            logger.debug(f"运行PotreePublisher: {cmd}")
+            cmd()
 
             # 填充对象数据
             object_data["potree_link"] = potree_link
@@ -806,7 +814,7 @@ class ObjectService:
                 return None
 
             if not pointcloud_data:
-                logger.warning(f"未找到ID为{id}的点云")
+                logger.warning(f"未找到ID为{id}，对象ID为{object_id}的点云")
                 return None
 
             pointcloud_data = Box(pointcloud_data)
